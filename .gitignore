@@ -1,0 +1,17 @@
+# Dependencies
+front/node_modules/
+
+# Next.js build output
+front/.next/
+front/out/
+
+# Test and TypeScript output
+front/coverage/
+front/*.tsbuildinfo
+front/next-env.d.ts
+
+# Local environment and logs
+front/.env*
+!front/.env.example
+front/*.log
+

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "github",
+    "channel": "github",
+    "label": "GitHub",
+    "value": "example-portfolio-profile",
+    "url": "https://github.com/example-portfolio-profile",
+    "order": 1
+  }
+]

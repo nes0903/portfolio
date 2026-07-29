@@ -1,0 +1,15 @@
+[
+  {
+    "id": "verified-static-portfolio",
+    "name": "Verified Static Portfolio",
+    "description": "공개 가능한 가상 JSON을 검증해 정적 페이지로 제공하는 예시 프로젝트입니다.",
+    "role": "Creator",
+    "skills": [
+      "TypeScript"
+    ],
+    "links": {
+      "repository": "https://github.com/example-portfolio-profile/verified-static-portfolio"
+    },
+    "order": 1
+  }
+]

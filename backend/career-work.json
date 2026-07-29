@@ -1,0 +1,15 @@
+[
+  {
+    "id": "static-portfolio-validation",
+    "careerId": "sample-studio",
+    "title": "정적 포트폴리오 검증",
+    "description": "구조화된 콘텐츠를 빌드 전에 검증하고 정적 산출물의 공개 경계를 확인했습니다.",
+    "achievements": [
+      "콘텐츠 계약 위반을 배포 전에 감지하는 예시 흐름을 구성했습니다."
+    ],
+    "technologies": [
+      "TypeScript"
+    ],
+    "order": 1
+  }
+]
