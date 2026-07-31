@@ -89,7 +89,7 @@ async function runVerifier(
   await Promise.all(
     Object.entries({ ...BASE_BACKEND_FILES, ...backendOverrides }).map(
       async ([relativePath, content]) => {
-        const path = join(root, "backend", relativePath);
+        const path = join(root, "back", relativePath);
         await mkdir(dirname(path), { recursive: true });
         await writeFile(path, content, "utf8");
       },
@@ -205,10 +205,10 @@ describe("static export verifier black-box boundary", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  it("server-only loader와 backend filesystem source가 번들에 섞이면 차단한다", async () => {
+  it("server-only loader와 back filesystem source가 번들에 섞이면 차단한다", async () => {
     const leakedSource = [
       'import "server-only";',
-      'const backendDirectory = path.resolve(process.cwd(), "../backend");',
+      'const backendDirectory = path.resolve(process.cwd(), "../back");',
       'readFile(path.join(backendDirectory, "contact.json"), "utf8");',
     ].join("\n");
     const result = await runVerifier({ "_next/static/leaked-loader.js": leakedSource });

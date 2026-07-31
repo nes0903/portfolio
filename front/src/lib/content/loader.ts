@@ -79,11 +79,11 @@ function assertExactContentFiles(entries: readonly Dirent[]): void {
  * JSON 파일 하나를 읽고 해당 파일 전용 Zod 계약으로 검증한다.
  */
 async function readValidatedJson<T>(
-  backendDirectory: string,
+  contentDirectory: string,
   fileName: string,
   schema: ZodType<T>,
 ): Promise<T> {
-  const filePath = path.join(backendDirectory, fileName);
+  const filePath = path.join(contentDirectory, fileName);
   let source: string;
   let parsed: unknown;
 
@@ -199,30 +199,30 @@ function assertCareerReferences(
 }
 
 /**
- * sibling backend JSON을 build-time에 읽어 검증된 전체 뷰 모델을 반환한다.
+ * sibling back JSON을 build-time에 읽어 검증된 전체 뷰 모델을 반환한다.
  */
 export async function loadPortfolioContent(
-  backendDirectory = path.resolve(process.cwd(), "../backend"),
+  contentDirectory = path.resolve(process.cwd(), "../back"),
 ): Promise<PortfolioContentViewModel> {
-  const entries = await readdir(backendDirectory, { withFileTypes: true });
+  const entries = await readdir(contentDirectory, { withFileTypes: true });
   assertExactContentFiles(entries);
 
   const [introduce, skills, careers, careerWorks, sideProjects, contacts] =
     await Promise.all([
-      readValidatedJson(backendDirectory, "introduce.json", introduceSchema),
-      readValidatedJson(backendDirectory, "skill.json", skillsSchema),
-      readValidatedJson(backendDirectory, "career.json", careersSchema),
+      readValidatedJson(contentDirectory, "introduce.json", introduceSchema),
+      readValidatedJson(contentDirectory, "skill.json", skillsSchema),
+      readValidatedJson(contentDirectory, "career.json", careersSchema),
       readValidatedJson(
-        backendDirectory,
+        contentDirectory,
         "career-work.json",
         careerWorksSchema,
       ),
       readValidatedJson(
-        backendDirectory,
+        contentDirectory,
         "side-project.json",
         sideProjectsSchema,
       ),
-      readValidatedJson(backendDirectory, "contact.json", contactsSchema),
+      readValidatedJson(contentDirectory, "contact.json", contactsSchema),
     ]);
 
   assertCareerReferences(careers, careerWorks);

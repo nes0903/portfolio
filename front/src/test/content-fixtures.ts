@@ -191,7 +191,7 @@ export async function writeContentFixture(
 ): Promise<ContentFixtureDirectory> {
   const rootDirectory = await mkdtemp(join(tmpdir(), "portfolio-content-"));
   const frontDirectory = join(rootDirectory, "front");
-  const backendDirectory = join(rootDirectory, "backend");
+  const backendDirectory = join(rootDirectory, "back");
 
   await Promise.all([
     mkdir(frontDirectory, { recursive: true }),

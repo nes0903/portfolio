@@ -166,7 +166,7 @@ describe("loadPortfolioContent", () => {
     });
   });
 
-  it("인자 생략 시 front cwd의 ../backend를 읽는다", async () => {
+  it("인자 생략 시 front cwd의 ../back을 읽는다", async () => {
     const fixture = await createFixture();
     vi.spyOn(process, "cwd").mockReturnValue(fixture.frontDirectory);
 

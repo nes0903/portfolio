@@ -8,12 +8,12 @@ import { fileURLToPath } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const frontDirectory = resolve(scriptDirectory, "..");
 const outDirectory = resolve(scriptDirectory, "../out");
-const backendDirectory = resolve(frontDirectory, "../backend");
+const contentDirectory = resolve(frontDirectory, "../back");
 const repositoryDirectory = resolve(frontDirectory, "..");
 const indexPath = join(outDirectory, "index.html");
 
 /**
- * 원본 backend 콘텐츠로 취급해 정적 산출물에서 금지하는 파일명 목록.
+ * 원본 콘텐츠로 취급해 정적 산출물에서 금지하는 파일명 목록.
  */
 const rawContentFileNames = new Set([
   "introduce.json",
@@ -79,7 +79,7 @@ const runtimeAssetPathPattern =
  */
 const serverSourcePatterns = [
   /(?:import\s+|require\(\s*)["']server-only["']/,
-  /path\.resolve\([^)]*["'][^"']*backend["']/,
+  /path\.resolve\([^)]*["'][^"']*(?:back|backend)["']/,
   /readFile\([^)]*["'](?:introduce|skill|career|career-work|side-project|contact)\.json["']/,
 ];
 
@@ -127,7 +127,7 @@ async function listFiles(directory, rejectSymlinks = false) {
 }
 
 /**
- * backend, Git metadata, source map, 원본 콘텐츠 파일, 민감 파일명을 검사한다.
+ * 원본 콘텐츠 디렉터리, Git metadata, source map, 민감 파일명을 검사한다.
  */
 function verifyArtifactPaths(files) {
   /**
@@ -140,6 +140,7 @@ function verifyArtifactPaths(files) {
     const fileName = normalizedSegments.at(-1) ?? "";
 
     if (
+      normalizedSegments.includes("back") ||
       normalizedSegments.includes("backend") ||
       normalizedSegments.includes(".git")
     ) {
@@ -350,7 +351,7 @@ function isDistinctEmbeddedPayload(value) {
 }
 
 /**
- * parse 가능한 JSON이면 backend 원본과 동일한 payload 또는 top-level raw 배열을 차단한다.
+ * parse 가능한 JSON이면 원본과 동일한 payload 또는 top-level raw 배열을 차단한다.
  */
 function assertNoRawPortfolioJson(
   content,
@@ -371,7 +372,7 @@ function assertNoRawPortfolioJson(
     const normalizedJson = serializeCanonicalJson(parsed);
 
     if (canonicalJsonValues.has(normalizedJson)) {
-      throw new Error(`backend 원본 JSON과 동일한 artifact가 노출되었습니다: ${relativePath}`);
+      throw new Error(`원본 JSON과 동일한 artifact가 노출되었습니다: ${relativePath}`);
     }
 
     if (
@@ -392,29 +393,29 @@ function assertNoRawPortfolioJson(
         serializeCanonicalJson(embeddedValue),
       )
     ) {
-      throw new Error(`backend canonical JSON이 wrapper 안에 노출되었습니다: ${relativePath}`);
+      throw new Error(`canonical JSON이 wrapper 안에 노출되었습니다: ${relativePath}`);
     }
   }
 }
 
 /**
- * canonical backend JSON과 공개가 승인된 contact 값을 읽는다.
+ * canonical 원본 JSON과 공개가 승인된 contact 값을 읽는다.
  */
-async function loadBackendContract() {
+async function loadContentContract() {
   const canonicalJsonValues = new Set();
   const embeddedCanonicalJsonValues = new Set();
   const approvedContactValues = new Set();
   const approvedEmailAddresses = new Set();
 
   for (const fileName of rawContentFileNames) {
-    const filePath = join(backendDirectory, fileName);
+    const filePath = join(contentDirectory, fileName);
     const content = await readFile(filePath, "utf8");
     let parsed;
 
     try {
       parsed = JSON.parse(content);
     } catch {
-      throw new Error(`backend JSON을 해석할 수 없습니다: ${fileName}`);
+      throw new Error(`원본 JSON을 해석할 수 없습니다: ${fileName}`);
     }
 
     const canonicalJson = serializeCanonicalJson(parsed);
@@ -489,7 +490,7 @@ async function assertNoSensitiveContent(
   );
 
   /**
-   * 일반 email은 backend contact의 승인 주소와 exact 비교해 임의 노출을 차단한다.
+   * 일반 email은 원본 contact의 승인 주소와 exact 비교해 임의 노출을 차단한다.
    */
   const emailScanContents = new Set([content, decodeEscapedText(content)]);
 
@@ -526,13 +527,13 @@ async function listOptionalFiles(directory) {
 }
 
 /**
- * backend 전체와 배포에 관여하는 production source/config/workflow를 검사한다.
+ * 원본 콘텐츠와 배포에 관여하는 production source/config/workflow를 검사한다.
  */
 async function verifyProjectSources(
   approvedContactValues,
   approvedEmailAddresses,
 ) {
-  const backendFiles = await listFiles(backendDirectory);
+  const contentFiles = await listFiles(contentDirectory);
   const sourceFiles = (await listOptionalFiles(join(frontDirectory, "src"))).filter(
     (file) => {
       const relativePath = relative(join(frontDirectory, "src"), file);
@@ -562,7 +563,7 @@ async function verifyProjectSources(
   );
 
   for (const file of [
-    ...backendFiles,
+    ...contentFiles,
     ...sourceFiles,
     ...configFiles,
     ...workflowFiles,
@@ -577,7 +578,7 @@ async function verifyProjectSources(
 }
 
 /**
- * 모든 텍스트 산출물에서 backend source, credential, PII, 원본 JSON을 검사한다.
+ * 모든 텍스트 산출물에서 원본 source, credential, PII, JSON을 검사한다.
  */
 async function verifyArtifactContents(
   files,
@@ -595,15 +596,15 @@ async function verifyArtifactContents(
     const relativePath = relative(outDirectory, file);
 
     if (
-      /(?:\.\.\/|\/)backend\/(?:introduce|skill|career|career-work|side-project|contact)\.json/.test(
+      /(?:\.\.\/|\/)(?:back|backend)\/(?:introduce|skill|career|career-work|side-project|contact)\.json/.test(
         content,
       )
     ) {
-      throw new Error(`backend 원본 경로가 노출되었습니다: ${relativePath}`);
+      throw new Error(`원본 콘텐츠 경로가 노출되었습니다: ${relativePath}`);
     }
 
     /**
-     * server-only import 또는 backend filesystem loader source를 발견하면 실패시킨다.
+     * server-only import 또는 원본 filesystem loader source를 발견하면 실패시킨다.
      */
     for (const pattern of serverSourcePatterns) {
       if (pattern.test(content)) {
@@ -891,7 +892,7 @@ async function verifyAssetReferences(files) {
  */
 async function verifyExport() {
   await access(indexPath);
-  const backendContract = await loadBackendContract();
+  const contentContract = await loadContentContract();
   const files = await listFiles(outDirectory, true);
 
   if (files.length === 0) {
@@ -899,16 +900,16 @@ async function verifyExport() {
   }
 
   await verifyProjectSources(
-    backendContract.approvedContactValues,
-    backendContract.approvedEmailAddresses,
+    contentContract.approvedContactValues,
+    contentContract.approvedEmailAddresses,
   );
   verifyArtifactPaths(files);
   await verifyArtifactContents(
     files,
-    backendContract.canonicalJsonValues,
-    backendContract.embeddedCanonicalJsonValues,
-    backendContract.approvedContactValues,
-    backendContract.approvedEmailAddresses,
+    contentContract.canonicalJsonValues,
+    contentContract.embeddedCanonicalJsonValues,
+    contentContract.approvedContactValues,
+    contentContract.approvedEmailAddresses,
   );
   await verifyAssetReferences(files);
 }

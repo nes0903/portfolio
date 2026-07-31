@@ -18,7 +18,7 @@ async function listFiles(directory: string): Promise<string[]> {
 }
 
 describe("raw content export boundary", () => {
-  it("public에 backend 원본 JSON을 staging하지 않는다", async () => {
+  it("public에 back 원본 JSON을 staging하지 않는다", async () => {
     const publicDirectory = resolve(process.cwd(), "public");
     if (!existsSync(publicDirectory)) return;
 
@@ -29,7 +29,7 @@ describe("raw content export boundary", () => {
   });
 
   it.skipIf(!existsSync(resolve(process.cwd(), "out")))(
-    "생성된 front/out에 backend 디렉터리나 원본 JSON 6개를 복사하지 않는다",
+    "생성된 front/out에 back 디렉터리나 원본 JSON 6개를 복사하지 않는다",
     async () => {
       const outDirectory = resolve(process.cwd(), "out");
       const outputFiles = await listFiles(outDirectory);
@@ -37,6 +37,7 @@ describe("raw content export boundary", () => {
         relative(outDirectory, file),
       );
 
+      expect(existsSync(join(outDirectory, "back"))).toBe(false);
       expect(existsSync(join(outDirectory, "backend"))).toBe(false);
       expect(relativeOutputFiles.map((file) => basename(file))).not.toEqual(
         expect.arrayContaining([...CONTENT_FILE_NAMES]),

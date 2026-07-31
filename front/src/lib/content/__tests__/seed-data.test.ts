@@ -7,11 +7,11 @@ import { loadPortfolioContent } from "@/lib/content/loader";
 
 vi.mock("server-only", () => ({}));
 
-const BACKEND_DIRECTORY = resolve(process.cwd(), "../backend");
+const BACK_DIRECTORY = resolve(process.cwd(), "../back");
 
-describe("portfolio backend seed data", () => {
+describe("portfolio back seed data", () => {
   it("실제 seed의 introduce와 5개 collection을 하나씩 로드하고 career-work를 결합한다", async () => {
-    const content = await loadPortfolioContent(BACKEND_DIRECTORY);
+    const content = await loadPortfolioContent(BACK_DIRECTORY);
 
     expect(content.introduce.title.trim()).not.toBe("");
     expect(content.introduce.content.trim()).not.toBe("");
