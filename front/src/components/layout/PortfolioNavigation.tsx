@@ -27,7 +27,10 @@ export function PortfolioNavigation({
                 section.id === "introduce" ? "location" : undefined
               }
             >
-              {section.label}
+              <span className="nav-number" aria-hidden="true">
+                {section.number}
+              </span>
+              <span className="nav-label">{section.label}</span>
             </a>
           </li>
         ))}

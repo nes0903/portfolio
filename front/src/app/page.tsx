@@ -1,4 +1,3 @@
-import { IndexSignal } from "@/components/layout/IndexSignal";
 import { NavigationTracker } from "@/components/layout/NavigationTracker";
 import { PortfolioNavigation } from "@/components/layout/PortfolioNavigation";
 import { PortfolioSections } from "@/components/portfolio/PortfolioSections";
@@ -9,6 +8,10 @@ import { loadPortfolioContent } from "@/lib/content/loader";
  */
 export default async function HomePage() {
   const content = await loadPortfolioContent();
+  const featuredProject = content.sideProjects[0];
+  const primarySkill = content.skills[0];
+  const primaryCareer = content.careers[0];
+  const primaryContact = content.contacts[0];
 
   return (
     <>
@@ -17,10 +20,12 @@ export default async function HomePage() {
       </a>
 
       <header className="site-banner shell">
-        <IndexSignal />
-        <div className="brand-name">
+        <a className="site-id" href="#introduce" aria-label="포트폴리오 처음으로">
           [NAME]
-          <small>/ PORTFOLIO</small>
+        </a>
+        <div className="banner-meta" aria-label="포트폴리오 정보">
+          <span>SOFTWARE ENGINEER</span>
+          <span>PORTFOLIO / SELECTED WORK</span>
         </div>
       </header>
 
@@ -32,22 +37,81 @@ export default async function HomePage() {
       </div>
 
       <div className="shell layout">
-        <aside className="rail" aria-label="포트폴리오 탐색">
-          <div className="brand">
-            <IndexSignal />
-            <div className="brand-name">
-              [NAME]
-              <small>/ PORTFOLIO</small>
-            </div>
+        <aside className="rail" aria-label="포트폴리오 요약">
+          <p className="rail-kicker">PORTFOLIO</p>
+          <p className="rail-name" aria-hidden="true">
+            [NAME]
+          </p>
+
+          <div className="rail-copy">
+            <strong>{content.introduce.title}</strong>
+            <p>{featuredProject?.name ?? "SELECTED WORK"}</p>
           </div>
 
-          <span className="status">BUILD-TIME CONTENT</span>
-          <PortfolioNavigation ariaLabel="페이지 목차" className="nav" />
+          <dl className="rail-facts">
+            {primarySkill ? (
+              <div>
+                <dt>SKILL</dt>
+                <dd>{primarySkill.name}</dd>
+              </div>
+            ) : null}
+            {primaryCareer ? (
+              <div>
+                <dt>ROLE</dt>
+                <dd>{primaryCareer.role}</dd>
+              </div>
+            ) : null}
+            {primaryCareer ? (
+              <div>
+                <dt>STUDIO</dt>
+                <dd>{primaryCareer.company}</dd>
+              </div>
+            ) : null}
+          </dl>
+
+          <div className="rail-links">
+            {featuredProject?.links.repository ? (
+              <a
+                href={featuredProject.links.repository}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Repository
+              </a>
+            ) : null}
+            {primaryContact ? (
+              <a
+                href={primaryContact.url}
+                target={primaryContact.channel === "email" ? undefined : "_blank"}
+                rel={
+                  primaryContact.channel === "email"
+                    ? undefined
+                    : "noopener noreferrer"
+                }
+              >
+                {primaryContact.label}
+              </a>
+            ) : null}
+          </div>
         </aside>
 
-        <main>
-          <PortfolioSections content={content} />
-        </main>
+        <div className="stage">
+          <div className="reel-track" aria-hidden="true">
+            <span>01A</span>
+            <span>02</span>
+            <span>03A</span>
+            <span>04</span>
+            <span>05A</span>
+          </div>
+
+          <main>
+            <PortfolioSections content={content} />
+          </main>
+
+          <div className="desktop-toc">
+            <PortfolioNavigation ariaLabel="페이지 목차" className="nav" />
+          </div>
+        </div>
       </div>
 
       <footer>
