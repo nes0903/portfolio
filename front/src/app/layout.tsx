@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "[NAME] / PORTFOLIO",
+  title: "PORTFOLIO",
   description: "Build-time validated portfolio content",
 };
 

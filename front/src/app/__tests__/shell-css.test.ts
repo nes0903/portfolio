@@ -32,6 +32,24 @@ function expectSelectorDeclaration(
 }
 
 describe("Portfolio carousel shell CSS contract", () => {
+  it("portfolio header 높이를 분리하고 남은 viewport를 carousel layout에 사용한다", () => {
+    expectSelectorDeclaration(
+      ".site-header",
+      /height\s*:\s*var\(--site-header-height\)/,
+    );
+    expectSelectorDeclaration(
+      ".layout",
+      /height\s*:\s*calc\(100svh\s*-\s*var\(--site-header-height\)\)/,
+    );
+    expectSelectorDeclaration(
+      ".site-brand",
+      /color\s*:\s*var\(--signal\)/,
+    );
+    expect(
+      cssRules.some((rule) => rule.selector.includes(".site-brand::before")),
+    ).toBe(false);
+  });
+
   it("desktop와 mobile 목차 link에 최소 44px target을 보장한다", () => {
     expectSelectorDeclaration(
       ".nav a",
@@ -64,7 +82,9 @@ describe("Portfolio carousel shell CSS contract", () => {
       /position\s*:\s*absolute/,
     );
     expect(baseSectionRule?.body).toMatch(/width\s*:\s*100%/);
-    expect(baseSectionRule?.body).toMatch(/height\s*:\s*100%/);
+    expect(baseSectionRule?.body).toMatch(
+      /height\s*:\s*calc\(100%\s*-\s*var\(--card-top-gap\)\)/,
+    );
     expect(adjacentCardRules).toHaveLength(2);
     adjacentCardRules.forEach((rule) => {
       expect(rule.body).not.toMatch(/scale\s*\(/);
@@ -86,6 +106,17 @@ describe("Portfolio carousel shell CSS contract", () => {
     expectSelectorDeclaration(
       '[data-carousel-offset="1"]',
       /transform\s*:/,
+    );
+  });
+
+  it("card 위에 배경이 그대로 비치는 여백을 두고 모서리를 둥글게 표시한다", () => {
+    expectSelectorDeclaration(
+      ".section",
+      /top\s*:\s*var\(--card-top-gap\)/,
+    );
+    expectSelectorDeclaration(
+      ".section",
+      /border-radius\s*:\s*var\(--card-radius\)/,
     );
   });
 

@@ -123,9 +123,13 @@ describe("portfolio home page shell", () => {
   it("단일 페이지 landmark와 이름이 연결된 5개 focusable section을 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
-    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "PORTFOLIO" })).toHaveAttribute(
+      "href",
+      "#introduce",
+    );
     expect(screen.getByRole("main")).toBeInTheDocument();
-    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
     expect(container.querySelectorAll("main > section")).toHaveLength(5);
 
     for (const id of [
@@ -195,16 +199,14 @@ describe("portfolio home page shell", () => {
     }
   });
 
-  it("footer는 exact 두 span과 meta 계약을 렌더링한다", async () => {
-    await renderHomePage();
-    const footer = screen.getByRole("contentinfo");
-    const spans = [...footer.querySelectorAll<HTMLElement>(".footer > span")];
+  it("name placeholder와 profile panel 없이 주황색 portfolio header를 렌더링한다", async () => {
+    const { container } = await renderHomePage();
 
-    expect(spans.map((span) => span.textContent)).toEqual([
-      "[NAME] / PORTFOLIO",
-      "Evidence follows structure.",
-    ]);
-    expect(spans[1]).toHaveClass("meta");
+    expect(container).not.toHaveTextContent("[NAME]");
+    expect(screen.getByText("PORTFOLIO")).toBeInTheDocument();
+    expect(screen.queryByText("PROFILE")).not.toBeInTheDocument();
+    expect(screen.queryByText("VIEW ↘")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("포트폴리오 요약")).not.toBeInTheDocument();
   });
 
   it("serious 및 critical axe 위반이 없다", async () => {
