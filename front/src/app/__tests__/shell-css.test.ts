@@ -47,18 +47,45 @@ describe("Portfolio carousel shell CSS contract", () => {
     expectSelectorDeclaration(":focus-visible", /outline\s*:\s*[^;]+/);
   });
 
-  it("각 section을 독립 card로 만들고 가로 snap carousel에 정렬한다", () => {
+  it("원래 크기의 독립 card를 유지하고 중앙 바깥의 양옆 원형 위치에 배치한다", () => {
+    const baseSectionRule = cssRules.find(
+      (rule) => rule.selector === ".section",
+    );
+    const adjacentCardRules = cssRules.filter((rule) =>
+      /data-carousel-offset="(?:-1|1)"/.test(rule.selector),
+    );
+
     expectSelectorDeclaration(
       ".portfolio-carousel",
-      /scroll-snap-type\s*:\s*x\s+mandatory/,
+      /overflow\s*:\s*visible/,
     );
     expectSelectorDeclaration(
       ".section",
-      /scroll-snap-align\s*:\s*start/,
+      /position\s*:\s*absolute/,
     );
+    expect(baseSectionRule?.body).toMatch(/width\s*:\s*100%/);
+    expect(baseSectionRule?.body).toMatch(/height\s*:\s*100%/);
+    expect(adjacentCardRules).toHaveLength(2);
+    adjacentCardRules.forEach((rule) => {
+      expect(rule.body).not.toMatch(/scale\s*\(/);
+      expect(rule.body).toMatch(/opacity\s*:\s*1/);
+      expect(rule.body).toMatch(/filter\s*:\s*none/);
+    });
     expectSelectorDeclaration(
       ".section",
       /border\s*:\s*(?!0\b)[^;]+/,
+    );
+    expectSelectorDeclaration(
+      '[data-carousel-offset="0"]',
+      /transform\s*:/,
+    );
+    expectSelectorDeclaration(
+      '[data-carousel-offset="-1"]',
+      /transform\s*:/,
+    );
+    expectSelectorDeclaration(
+      '[data-carousel-offset="1"]',
+      /transform\s*:/,
     );
   });
 

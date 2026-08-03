@@ -10,6 +10,14 @@ interface PortfolioSectionProps {
   readonly title: string;
 }
 
+const initialCarouselOffsets: Readonly<Record<PortfolioSectionId, number>> = {
+  introduce: 0,
+  skills: 1,
+  career: 2,
+  "side-projects": -2,
+  contact: -1,
+};
+
 /**
  * 공통 heading과 focus anchor 계약을 적용한 portfolio section.
  */
@@ -31,6 +39,9 @@ export function PortfolioSection({
       tabIndex={-1}
       aria-labelledby={titleId}
       data-section={id}
+      data-carousel-card
+      data-carousel-offset={initialCarouselOffsets[id]}
+      aria-roledescription="slide"
     >
       {isIntroduction ? (
         <div className="head">

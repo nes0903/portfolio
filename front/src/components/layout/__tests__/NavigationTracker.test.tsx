@@ -12,32 +12,18 @@ import {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   window.history.replaceState(null, "", "/");
 });
 
 interface CarouselFixture {
   readonly cancelAnimationFrameMock: ReturnType<typeof vi.fn>;
-  readonly carousel: HTMLElement;
   readonly queuedFrames: FrameRequestCallback[];
-  readonly scrollToMock: ReturnType<typeof vi.fn>;
-  readonly setScrollLeft: (value: number) => void;
   readonly unmount: () => void;
 }
 
-function createRect(left: number, width = 1_000): DOMRect {
-  return {
-    bottom: 700,
-    height: 700,
-    left,
-    right: left + width,
-    top: 0,
-    width,
-    x: left,
-    y: 0,
-    toJSON: () => ({}),
-  };
-}
+const initialOffsets = [0, 1, 2, -2, -1] as const;
 
 function renderCarouselTracker(): CarouselFixture {
   const queuedFrames: FrameRequestCallback[] = [];
@@ -57,8 +43,14 @@ function renderCarouselTracker(): CarouselFixture {
       <PortfolioNavigation ariaLabel="데스크톱 페이지 목차" />
       <PortfolioNavigation ariaLabel="모바일 페이지 목차" />
       <main data-carousel>
-        {PORTFOLIO_SECTIONS.map((section) => (
-          <section id={section.id} key={section.id} tabIndex={-1}>
+        {PORTFOLIO_SECTIONS.map((section, index) => (
+          <section
+            id={section.id}
+            key={section.id}
+            tabIndex={-1}
+            data-carousel-card
+            data-carousel-offset={initialOffsets[index]}
+          >
             {section.label}
           </section>
         ))}
@@ -67,48 +59,9 @@ function renderCarouselTracker(): CarouselFixture {
     </>,
   );
 
-  const carousel = document.querySelector<HTMLElement>("[data-carousel]");
-  if (!carousel) throw new Error("carousel fixture가 필요합니다");
-
-  let scrollLeft = 0;
-
-  Object.defineProperty(carousel, "scrollLeft", {
-    configurable: true,
-    get: () => scrollLeft,
-    set: (value: number) => {
-      scrollLeft = value;
-    },
-  });
-
-  vi.spyOn(carousel, "getBoundingClientRect").mockImplementation(() =>
-    createRect(0),
-  );
-
-  for (const [index, section] of PORTFOLIO_SECTIONS.entries()) {
-    const element = document.getElementById(section.id);
-    if (!element) throw new Error(`${section.id} section fixture가 필요합니다`);
-
-    vi.spyOn(element, "getBoundingClientRect").mockImplementation(() =>
-      createRect(index * 1_000 - scrollLeft),
-    );
-  }
-
-  const scrollToMock = vi.fn((options: ScrollToOptions) => {
-    scrollLeft = options.left ?? scrollLeft;
-  });
-  Object.defineProperty(carousel, "scrollTo", {
-    configurable: true,
-    value: scrollToMock,
-  });
-
   return {
     cancelAnimationFrameMock,
-    carousel,
     queuedFrames,
-    scrollToMock,
-    setScrollLeft: (value: number) => {
-      scrollLeft = value;
-    },
     unmount: view.unmount,
   };
 }
@@ -125,49 +78,62 @@ function expectCurrentSection(sectionId: PortfolioSectionId): void {
   }
 }
 
+function expectCardOffsets(
+  expected: Readonly<Record<PortfolioSectionId, number>>,
+): void {
+  for (const section of PORTFOLIO_SECTIONS) {
+    expect(document.getElementById(section.id)).toHaveAttribute(
+      "data-carousel-offset",
+      String(expected[section.id]),
+    );
+  }
+}
+
+function clickSection(label: string): void {
+  const links = screen.getAllByRole<HTMLAnchorElement>("link", { name: label });
+  const link = links[0];
+  if (!link) throw new Error(`${label} navigation link가 필요합니다`);
+  fireEvent.click(link);
+}
+
 function runNextFrame(queuedFrames: FrameRequestCallback[]): void {
   const frame = queuedFrames.shift();
   if (!frame) throw new Error("requestAnimationFrame callback이 필요합니다");
   act(() => frame(0));
 }
 
-describe("NavigationTracker carousel", () => {
-  it("초기에는 두 navigation 모두 01 소개를 current로 표시한다", () => {
+describe("NavigationTracker infinite carousel", () => {
+  it("초기에는 05, 01, 02 card가 왼쪽, 중앙, 오른쪽에 배치된다", () => {
     renderCarouselTracker();
 
+    expectCardOffsets({
+      introduce: 0,
+      skills: 1,
+      career: 2,
+      "side-projects": -2,
+      contact: -1,
+    });
     expectCurrentSection("introduce");
+    expect(document.querySelector("[data-carousel]")).toHaveAttribute(
+      "data-active-section",
+      "introduce",
+    );
   });
 
-  it("초기 hash는 layout frame 뒤 해당 카드 위치와 focus를 복원한다", () => {
-    window.history.replaceState(null, "", "#contact");
-    const { queuedFrames, scrollToMock } = renderCarouselTracker();
-    const contactSection = document.getElementById("contact");
-    if (!contactSection) throw new Error("contact section이 필요합니다");
-
-    runNextFrame(queuedFrames);
-
-    expect(scrollToMock).toHaveBeenCalledWith({
-      behavior: "instant",
-      left: 4_000,
-    });
-    expectCurrentSection("contact");
-    expect(contactSection).toHaveFocus();
-  });
-
-  it("번호를 클릭하면 hash와 current를 바꾸고 해당 카드를 가로로 이동한다", () => {
-    const { queuedFrames, scrollToMock } = renderCarouselTracker();
-    const careerLinks = screen.getAllByRole<HTMLAnchorElement>("link", {
-      name: "경력",
-    });
+  it("03을 클릭하면 02, 03, 04 card가 왼쪽, 중앙, 오른쪽으로 회전한다", () => {
+    const { queuedFrames } = renderCarouselTracker();
     const careerSection = document.getElementById("career");
     if (!careerSection) throw new Error("career section이 필요합니다");
 
-    fireEvent.click(careerLinks[0] as HTMLAnchorElement);
+    clickSection("경력");
 
     expect(window.location.hash).toBe("#career");
-    expect(scrollToMock).toHaveBeenCalledWith({
-      behavior: "smooth",
-      left: 2_000,
+    expectCardOffsets({
+      introduce: -2,
+      skills: -1,
+      career: 0,
+      "side-projects": 1,
+      contact: 2,
     });
     expectCurrentSection("career");
 
@@ -175,38 +141,72 @@ describe("NavigationTracker carousel", () => {
     expect(careerSection).toHaveFocus();
   });
 
-  it("carousel을 가로 스크롤하면 중앙 카드에 맞춰 current를 이동한다", () => {
-    const { carousel, queuedFrames, setScrollLeft } = renderCarouselTracker();
+  it("05와 01 사이를 양끝 없이 한 칸으로 순환한다", () => {
+    const { queuedFrames } = renderCarouselTracker();
 
-    setScrollLeft(1_000);
-    fireEvent.scroll(carousel);
+    clickSection("연락처");
     runNextFrame(queuedFrames);
-    expectCurrentSection("skills");
+    expectCardOffsets({
+      introduce: 1,
+      skills: 2,
+      career: -2,
+      "side-projects": -1,
+      contact: 0,
+    });
 
-    setScrollLeft(3_000);
-    fireEvent.scroll(carousel);
+    clickSection("소개");
     runNextFrame(queuedFrames);
-    expectCurrentSection("side-projects");
+    expectCardOffsets({
+      introduce: 0,
+      skills: 1,
+      career: 2,
+      "side-projects": -2,
+      contact: -1,
+    });
+    expectCurrentSection("introduce");
   });
 
-  it("hashchange로 접근한 section도 carousel과 current에 반영한다", () => {
-    const { scrollToMock } = renderCarouselTracker();
+  it("hashchange도 해당 card를 중앙에 배치하고 focus를 옮긴다", () => {
+    const { queuedFrames } = renderCarouselTracker();
     const contactSection = document.getElementById("contact");
     if (!contactSection) throw new Error("contact section이 필요합니다");
 
     window.history.replaceState(null, "", "#contact");
     act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
 
-    expect(scrollToMock).toHaveBeenCalledWith({
-      behavior: "smooth",
-      left: 4_000,
+    expectCardOffsets({
+      introduce: 1,
+      skills: 2,
+      career: -2,
+      "side-projects": -1,
+      contact: 0,
     });
     expectCurrentSection("contact");
+
+    runNextFrame(queuedFrames);
     expect(contactSection).toHaveFocus();
   });
 
-  it("Fast Refresh 뒤 추가된 navigation에도 가로 스크롤 current를 반영한다", () => {
-    const { carousel, queuedFrames, setScrollLeft } = renderCarouselTracker();
+  it("초기 hash도 hydration 직후 해당 card 위치를 복원한다", () => {
+    vi.useFakeTimers();
+    window.history.replaceState(null, "", "#side-projects");
+    renderCarouselTracker();
+
+    expectCardOffsets({
+      introduce: 2,
+      skills: -2,
+      career: -1,
+      "side-projects": 0,
+      contact: 1,
+    });
+    expectCurrentSection("side-projects");
+
+    act(() => vi.runAllTimers());
+    expectCurrentSection("side-projects");
+  });
+
+  it("Fast Refresh 뒤 추가된 navigation에도 current를 반영한다", () => {
+    renderCarouselTracker();
     const navigation = document.querySelector("nav");
     if (!navigation) throw new Error("복제할 navigation이 필요합니다");
 
@@ -214,32 +214,25 @@ describe("NavigationTracker carousel", () => {
     document.body.append(refreshedNavigation);
 
     try {
-      setScrollLeft(1_000);
-      fireEvent.scroll(carousel);
-      runNextFrame(queuedFrames);
+      clickSection("기술");
       expectCurrentSection("skills");
     } finally {
       refreshedNavigation.remove();
     }
   });
 
-  it("unmount 시 pending frame과 global listener를 정리한다", () => {
-    const {
-      cancelAnimationFrameMock,
-      carousel,
-      queuedFrames,
-      setScrollLeft,
-      unmount,
-    } = renderCarouselTracker();
+  it("unmount 시 pending focus frame과 global listener를 정리한다", () => {
+    const { cancelAnimationFrameMock, queuedFrames, unmount } =
+      renderCarouselTracker();
 
-    setScrollLeft(1_000);
-    fireEvent.scroll(carousel);
+    clickSection("경력");
     expect(queuedFrames).toHaveLength(1);
 
     unmount();
     expect(cancelAnimationFrameMock).toHaveBeenCalledWith(1);
 
-    fireEvent.scroll(carousel);
+    window.history.replaceState(null, "", "#skills");
+    act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(queuedFrames).toHaveLength(1);
   });
 });
