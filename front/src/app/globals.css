@@ -42,6 +42,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
   background: var(--film);
 }
 
@@ -279,6 +280,7 @@ h4 {
   z-index: 3;
   opacity: 1;
   pointer-events: auto;
+  cursor: default;
   filter: none;
   border-color: color-mix(in srgb, var(--signal) 58%, #303036);
   box-shadow:
@@ -290,7 +292,8 @@ h4 {
 .section[data-carousel-offset="-1"] {
   z-index: 2;
   opacity: 1;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   filter: none;
   transform: translate3d(
     calc(-150% - var(--carousel-gap)),
@@ -302,9 +305,15 @@ h4 {
 .section[data-carousel-offset="1"] {
   z-index: 2;
   opacity: 1;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   filter: none;
   transform: translate3d(calc(50% + var(--carousel-gap)), 0, 0);
+}
+
+.section[data-carousel-position="adjacent"]:hover {
+  border-color: color-mix(in srgb, var(--signal) 72%, #303036);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
 }
 
 .section[data-carousel-offset="-2"] {

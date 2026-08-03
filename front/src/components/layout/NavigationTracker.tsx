@@ -96,6 +96,10 @@ export function NavigationTracker() {
         .querySelector<HTMLElement>("[data-carousel]")
         ?.setAttribute("data-active-section", sectionId);
       setCurrentSection(sectionId);
+
+      if (window.scrollX !== 0) {
+        window.scrollTo({ left: 0, top: window.scrollY, behavior: "auto" });
+      }
     }
 
     /**
@@ -114,12 +118,34 @@ export function NavigationTracker() {
     }
 
     /**
-     * 번호와 내부 section 링크를 원형 carousel 회전으로 전환한다.
+     * URL, card 위치, focus를 한 번에 같은 section으로 전환한다.
+     */
+    function navigateToSection(sectionId: PortfolioSectionId): void {
+      if (window.location.hash !== `#${sectionId}`) {
+        window.history.pushState(null, "", `#${sectionId}`);
+      }
+
+      positionCarousel(sectionId);
+      scheduleSectionFocus(sectionId);
+    }
+
+    /**
+     * 양옆 card, 번호, 내부 section 링크를 원형 carousel 회전으로 전환한다.
      */
     function handleNavigationClick(event: MouseEvent): void {
       const clickedElement = event.target;
 
       if (!(clickedElement instanceof Element)) {
+        return;
+      }
+
+      const adjacentCard = clickedElement.closest<HTMLElement>(
+        '[data-carousel-card][data-carousel-position="adjacent"]',
+      );
+
+      if (adjacentCard && isPortfolioSectionId(adjacentCard.id)) {
+        event.preventDefault();
+        navigateToSection(adjacentCard.id);
         return;
       }
 
@@ -136,13 +162,7 @@ export function NavigationTracker() {
       }
 
       event.preventDefault();
-
-      if (window.location.hash !== `#${sectionId}`) {
-        window.history.pushState(null, "", `#${sectionId}`);
-      }
-
-      positionCarousel(sectionId);
-      scheduleSectionFocus(sectionId);
+      navigateToSection(sectionId);
     }
 
     /**

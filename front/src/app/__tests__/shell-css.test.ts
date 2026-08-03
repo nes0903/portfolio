@@ -63,6 +63,7 @@ describe("Portfolio carousel shell CSS contract", () => {
 
   it("keyboard focus를 배경색만이 아닌 가시적 outline으로 표시한다", () => {
     expectSelectorDeclaration(":focus-visible", /outline\s*:\s*[^;]+/);
+    expectSelectorDeclaration("html", /overflow-x\s*:\s*clip/);
   });
 
   it("원래 크기의 독립 card를 유지하고 중앙 바깥의 양옆 원형 위치에 배치한다", () => {
@@ -96,6 +97,8 @@ describe("Portfolio carousel shell CSS contract", () => {
       expect(rule.body).not.toMatch(/scale\s*\(/);
       expect(rule.body).toMatch(/opacity\s*:\s*1/);
       expect(rule.body).toMatch(/filter\s*:\s*none/);
+      expect(rule.body).toMatch(/pointer-events\s*:\s*auto/);
+      expect(rule.body).toMatch(/cursor\s*:\s*pointer/);
     });
     expectSelectorDeclaration(
       ".section",

@@ -96,6 +96,12 @@ function clickSection(label: string): void {
   fireEvent.click(link);
 }
 
+function clickCard(sectionId: PortfolioSectionId): void {
+  const card = document.getElementById(sectionId);
+  if (!card) throw new Error(`${sectionId} card가 필요합니다`);
+  fireEvent.click(card);
+}
+
 function runNextFrame(queuedFrames: FrameRequestCallback[]): void {
   const frame = queuedFrames.shift();
   if (!frame) throw new Error("requestAnimationFrame callback이 필요합니다");
@@ -164,6 +170,58 @@ describe("NavigationTracker infinite carousel", () => {
       contact: -1,
     });
     expectCurrentSection("introduce");
+  });
+
+  it("양옆 card를 클릭하면 해당 card가 중앙으로 이동한다", () => {
+    const { queuedFrames } = renderCarouselTracker();
+
+    clickCard("skills");
+    expect(window.location.hash).toBe("#skills");
+    expectCardOffsets({
+      introduce: -1,
+      skills: 0,
+      career: 1,
+      "side-projects": 2,
+      contact: -2,
+    });
+    expectCurrentSection("skills");
+    runNextFrame(queuedFrames);
+    expect(document.getElementById("skills")).toHaveFocus();
+
+    clickCard("introduce");
+    expect(window.location.hash).toBe("#introduce");
+    expectCardOffsets({
+      introduce: 0,
+      skills: 1,
+      career: 2,
+      "side-projects": -2,
+      contact: -1,
+    });
+  });
+
+  it("현재 중앙 card 자체를 클릭해도 불필요한 전환을 만들지 않는다", () => {
+    const { queuedFrames } = renderCarouselTracker();
+
+    clickCard("introduce");
+
+    expect(window.location.hash).toBe("");
+    expect(queuedFrames).toHaveLength(0);
+    expectCurrentSection("introduce");
+  });
+
+  it("화면 밖 card 때문에 생긴 document 가로 이동을 원위치로 복원한다", () => {
+    const scrollToMock = vi.fn();
+    vi.stubGlobal("scrollX", 420);
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("scrollTo", scrollToMock);
+
+    renderCarouselTracker();
+
+    expect(scrollToMock).toHaveBeenCalledWith({
+      behavior: "auto",
+      left: 0,
+      top: 0,
+    });
   });
 
   it("hashchange도 해당 card를 중앙에 배치하고 focus를 옮긴다", () => {
