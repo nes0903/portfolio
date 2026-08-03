@@ -25,6 +25,10 @@ describe("single App Router page boundary", () => {
       /BrowserRouter|react-router|next\/router|useRouter\s*\(/,
     );
     expect(pageSource).not.toMatch(/["']use server["']|\bServer Action\b/);
+    expect(pageSource).toMatch(
+      /import\s+\{\s*loadPublishedPortfolioContent\s*\}\s+from\s+["']@\/lib\/content\/supabase-loader["']/,
+    );
+    expect(pageSource).toMatch(/export\s+const\s+dynamic\s*=\s*["']force-dynamic["']/);
   });
 
   it("/ 외의 page, Route Handler, Server Action 파일을 만들지 않는다", async () => {

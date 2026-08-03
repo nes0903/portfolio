@@ -14,12 +14,8 @@ import {
   sideProjectsSchema,
   skillsSchema,
 } from "@/lib/content/schema";
-import type {
-  Career,
-  CareerWork,
-  DeepReadonly,
-  PortfolioContentViewModel,
-} from "@/lib/content/types";
+import { createPortfolioContentViewModel } from "@/lib/content/model";
+import type { PortfolioContentViewModel } from "@/lib/content/types";
 
 /**
  * 빌드 입력으로 허용하는 JSON 파일 이름의 단일 계약.
@@ -145,60 +141,6 @@ async function readValidatedJson<T>(
 }
 
 /**
- * 값을 변경하지 않고 order 오름차순의 새 배열을 만든다.
- */
-function sortByOrder<T extends { readonly order: number }>(
-  items: readonly T[],
-): T[] {
-  return [...items].sort((left, right) => left.order - right.order);
-}
-
-/**
- * 모든 중첩 객체와 배열을 동결해 읽기 전용 뷰 모델을 런타임에도 보장한다.
- */
-function deepFreeze<T>(value: T): DeepReadonly<T> {
-  /**
-   * 원시값, null, 이미 동결된 값은 추가 순회 없이 반환한다.
-   */
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) {
-    return value as DeepReadonly<T>;
-  }
-
-  /**
-   * 부모를 동결하기 전에 모든 중첩 값을 재귀적으로 동결한다.
-   */
-  for (const nestedValue of Object.values(value)) {
-    deepFreeze(nestedValue);
-  }
-
-  return Object.freeze(value) as DeepReadonly<T>;
-}
-
-/**
- * 모든 career-work가 실제 career를 참조하는지 검증한다.
- */
-function assertCareerReferences(
-  careers: readonly Career[],
-  careerWorks: readonly CareerWork[],
-): void {
-  const careerIds = new Set(careers.map((career) => career.id));
-
-  /**
-   * 참조 대상이 없는 work는 orphan으로 보고 빌드를 중단한다.
-   */
-  for (const work of careerWorks) {
-    /**
-     * careerId는 career.json의 id 중 하나와 일치해야 한다.
-     */
-    if (!careerIds.has(work.careerId)) {
-      throw new Error(
-        "Portfolio content relationship error; file=career-work.json; field=careerId",
-      );
-    }
-  }
-}
-
-/**
  * sibling back JSON을 build-time에 읽어 검증된 전체 뷰 모델을 반환한다.
  */
 export async function loadPortfolioContent(
@@ -225,19 +167,12 @@ export async function loadPortfolioContent(
       readValidatedJson(contentDirectory, "contact.json", contactsSchema),
     ]);
 
-  assertCareerReferences(careers, careerWorks);
-
-  const sortedCareerWorks = sortByOrder(careerWorks);
-  const joinedCareers = sortByOrder(careers).map((career) => ({
-    ...career,
-    works: sortedCareerWorks.filter((work) => work.careerId === career.id),
-  }));
-
-  return deepFreeze({
+  return createPortfolioContentViewModel({
     introduce,
-    skills: sortByOrder(skills),
-    careers: joinedCareers,
-    sideProjects: sortByOrder(sideProjects),
-    contacts: sortByOrder(contacts),
+    skills,
+    careers,
+    careerWorks,
+    sideProjects,
+    contacts,
   });
 }

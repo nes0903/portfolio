@@ -2,13 +2,18 @@ import { NavigationTracker } from "@/components/layout/NavigationTracker";
 import { PortfolioHeader } from "@/components/layout/PortfolioHeader";
 import { PortfolioNavigation } from "@/components/layout/PortfolioNavigation";
 import { PortfolioSections } from "@/components/portfolio/PortfolioSections";
-import { loadPortfolioContent } from "@/lib/content/loader";
+import { loadPublishedPortfolioContent } from "@/lib/content/supabase-loader";
 
 /**
- * 검증된 build-time 콘텐츠를 단일 정적 포트폴리오 페이지로 조립한다.
+ * 공개 포트폴리오 문서는 요청 시점에 Supabase에서 읽는다.
+ */
+export const dynamic = "force-dynamic";
+
+/**
+ * 검증된 공개 콘텐츠를 포트폴리오 페이지로 조립한다.
  */
 export default async function HomePage() {
-  const content = await loadPortfolioContent();
+  const content = await loadPublishedPortfolioContent();
 
   return (
     <>

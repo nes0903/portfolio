@@ -1,4 +1,4 @@
-name: Portfolio Pages
+name: Portfolio CI
 
 on:
   pull_request:
@@ -10,14 +10,13 @@ on:
 permissions: {}
 
 concurrency:
-  group: pages-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'deploy' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: portfolio-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  verify:
     permissions:
       contents: read
-      pages: read
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,10 +32,6 @@ jobs:
           node-version-file: front/.nvmrc
           cache: npm
           cache-dependency-path: front/package-lock.json
-      - name: Configure GitHub Pages
-        id: pages
-        # v6.0.0
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
       - name: Install dependencies
         run: npm ci
       - name: Typecheck
@@ -45,32 +40,5 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
-      - name: Build static export
+      - name: Build Next.js application
         run: npm run build
-        env:
-          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-      - name: Verify static export
-        run: npm run verify
-        env:
-          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-      - name: Upload Pages artifact
-        # v5.0.0
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
-        with:
-          path: front/out
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
-    permissions:
-      pages: write
-      id-token: write
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy GitHub Pages
-        id: deployment
-        # v5.0.0
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128

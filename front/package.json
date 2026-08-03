@@ -13,11 +13,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "verify": "node scripts/verify-export.mjs"
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "next": "16.2.10",
+    "@supabase/supabase-js": "2.110.8",
+    "next": "16.2.12",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "server-only": "0.0.1",
@@ -32,8 +32,9 @@
     "@types/react-dom": "19.2.3",
     "axe-core": "4.12.1",
     "eslint": "9.39.1",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.12",
     "jsdom": "29.1.1",
+    "supabase": "2.110.0",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vitest": "4.1.10"

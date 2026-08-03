@@ -5,11 +5,11 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import HomePage from "@/app/page";
-import { loadPortfolioContent } from "@/lib/content/loader";
+import { loadPublishedPortfolioContent } from "@/lib/content/supabase-loader";
 import type { PortfolioContentViewModel } from "@/lib/content/types";
 
-vi.mock("@/lib/content/loader", () => ({
-  loadPortfolioContent: vi.fn(),
+vi.mock("@/lib/content/supabase-loader", () => ({
+  loadPublishedPortfolioContent: vi.fn(),
 }));
 
 const navigationHrefs = [
@@ -81,7 +81,7 @@ const emptyCollectionsContent = {
   contacts: [],
 } satisfies PortfolioContentViewModel;
 
-const loaderMock = vi.mocked(loadPortfolioContent);
+const loaderMock = vi.mocked(loadPublishedPortfolioContent);
 
 async function renderHomePage(
   content: PortfolioContentViewModel = populatedContent,
