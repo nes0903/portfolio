@@ -31,7 +31,7 @@ function expectSelectorDeclaration(
   ).toBe(true);
 }
 
-describe("W7 v2 + A5 + D13 v2 shell CSS contract", () => {
+describe("Portfolio carousel shell CSS contract", () => {
   it("desktop와 mobile 목차 link에 최소 44px target을 보장한다", () => {
     expectSelectorDeclaration(
       ".nav a",
@@ -47,10 +47,18 @@ describe("W7 v2 + A5 + D13 v2 shell CSS contract", () => {
     expectSelectorDeclaration(":focus-visible", /outline\s*:\s*[^;]+/);
   });
 
-  it("anchor 대상 section에 sticky navigation 여백을 둔다", () => {
+  it("각 section을 독립 card로 만들고 가로 snap carousel에 정렬한다", () => {
+    expectSelectorDeclaration(
+      ".portfolio-carousel",
+      /scroll-snap-type\s*:\s*x\s+mandatory/,
+    );
     expectSelectorDeclaration(
       ".section",
-      /scroll-margin-(?:top|block-start)\s*:\s*(?!0(?:px|rem)?\b)[^;]+/,
+      /scroll-snap-align\s*:\s*start/,
+    );
+    expectSelectorDeclaration(
+      ".section",
+      /border\s*:\s*(?!0\b)[^;]+/,
     );
   });
 

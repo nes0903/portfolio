@@ -19,16 +19,6 @@ export default async function HomePage() {
         본문으로 이동
       </a>
 
-      <header className="site-banner shell">
-        <a className="site-id" href="#introduce" aria-label="포트폴리오 처음으로">
-          [NAME]
-        </a>
-        <div className="banner-meta" aria-label="포트폴리오 정보">
-          <span>SOFTWARE ENGINEER</span>
-          <span>PORTFOLIO / SELECTED WORK</span>
-        </div>
-      </header>
-
       <div className="mobile-toc shell">
         <PortfolioNavigation
           ariaLabel="모바일 페이지 목차"
@@ -38,73 +28,79 @@ export default async function HomePage() {
 
       <div className="shell layout">
         <aside className="rail" aria-label="포트폴리오 요약">
-          <p className="rail-kicker">PORTFOLIO</p>
-          <p className="rail-name" aria-hidden="true">
-            [NAME]
-          </p>
-
-          <div className="rail-copy">
-            <strong>{content.introduce.title}</strong>
-            <p>{featuredProject?.name ?? "SELECTED WORK"}</p>
+          <div className="rail-trigger">
+            <p className="rail-name" aria-hidden="true">
+              [NAME]
+            </p>
+            <span className="rail-trigger-hint" aria-hidden="true">
+              PROFILE ↘
+            </span>
           </div>
 
-          <dl className="rail-facts">
-            {primarySkill ? (
-              <div>
-                <dt>SKILL</dt>
-                <dd>{primarySkill.name}</dd>
-              </div>
-            ) : null}
-            {primaryCareer ? (
-              <div>
-                <dt>ROLE</dt>
-                <dd>{primaryCareer.role}</dd>
-              </div>
-            ) : null}
-            {primaryCareer ? (
-              <div>
-                <dt>STUDIO</dt>
-                <dd>{primaryCareer.company}</dd>
-              </div>
-            ) : null}
-          </dl>
+          <div className="rail-panel">
+            <p className="rail-kicker">PORTFOLIO</p>
 
-          <div className="rail-links">
-            {featuredProject?.links.repository ? (
-              <a
-                href={featuredProject.links.repository}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Repository
-              </a>
-            ) : null}
-            {primaryContact ? (
-              <a
-                href={primaryContact.url}
-                target={primaryContact.channel === "email" ? undefined : "_blank"}
-                rel={
-                  primaryContact.channel === "email"
-                    ? undefined
-                    : "noopener noreferrer"
-                }
-              >
-                {primaryContact.label}
-              </a>
-            ) : null}
+            <div className="rail-copy">
+              <strong>{content.introduce.title}</strong>
+              <p>{featuredProject?.name ?? "SELECTED WORK"}</p>
+            </div>
+
+            <dl className="rail-facts">
+              {primarySkill ? (
+                <div>
+                  <dt>SKILL</dt>
+                  <dd>{primarySkill.name}</dd>
+                </div>
+              ) : null}
+              {primaryCareer ? (
+                <div>
+                  <dt>ROLE</dt>
+                  <dd>{primaryCareer.role}</dd>
+                </div>
+              ) : null}
+              {primaryCareer ? (
+                <div>
+                  <dt>STUDIO</dt>
+                  <dd>{primaryCareer.company}</dd>
+                </div>
+              ) : null}
+            </dl>
+
+            <div className="rail-links">
+              {featuredProject?.links.repository ? (
+                <a
+                  href={featuredProject.links.repository}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Repository
+                </a>
+              ) : null}
+              {primaryContact ? (
+                <a
+                  href={primaryContact.url}
+                  target={
+                    primaryContact.channel === "email" ? undefined : "_blank"
+                  }
+                  rel={
+                    primaryContact.channel === "email"
+                      ? undefined
+                      : "noopener noreferrer"
+                  }
+                >
+                  {primaryContact.label}
+                </a>
+              ) : null}
+            </div>
           </div>
         </aside>
 
         <div className="stage">
-          <div className="reel-track" aria-hidden="true">
-            <span>01A</span>
-            <span>02</span>
-            <span>03A</span>
-            <span>04</span>
-            <span>05A</span>
-          </div>
-
-          <main>
+          <main
+            className="portfolio-carousel"
+            data-carousel
+            aria-label="포트폴리오 섹션 캐러셀"
+          >
             <PortfolioSections content={content} />
           </main>
 

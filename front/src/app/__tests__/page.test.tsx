@@ -123,9 +123,7 @@ describe("portfolio home page shell", () => {
   it("단일 페이지 landmark와 이름이 연결된 5개 focusable section을 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
-    const banner = screen.getByRole("banner");
-    expect(banner).toBeInTheDocument();
-    expect(banner).not.toHaveClass("mobile-brand");
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
     expect(container.querySelectorAll("main > section")).toHaveLength(5);

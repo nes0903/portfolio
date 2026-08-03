@@ -10,7 +10,6 @@ import {
 const sectionIds = new Set<PortfolioSectionId>(
   PORTFOLIO_SECTIONS.map((section) => section.id),
 );
-const scrollEndTimeoutMilliseconds = 1_000;
 
 /**
  * 문자열이 승인된 portfolio section id인지 좁힌다.
@@ -20,34 +19,39 @@ function isPortfolioSectionId(value: string): value is PortfolioSectionId {
 }
 
 /**
- * hash와 viewport 교차 상태를 두 navigation의 aria-current에 동기화한다.
+ * carousel 위치, hash, 두 navigation의 current 상태를 동기화한다.
  */
 export function NavigationTracker() {
   useEffect(() => {
-    const navigationLinks = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>("a[data-nav]"),
-    );
-    const hashLinks = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'),
-    );
-    const sections = PORTFOLIO_SECTIONS.map((section) =>
-      document.getElementById(section.id),
-    ).filter((section): section is HTMLElement => section !== null);
-    let pendingScrollEndHandler: (() => void) | undefined;
-    let pendingScrollEndSectionId: PortfolioSectionId | undefined;
-    let pendingScrollEndTimer: number | undefined;
+    let pendingSyncFrame: number | undefined;
+    let pendingFocusFrame: number | undefined;
+    let pendingInitialHashTimer: number | undefined;
 
     /**
-     * desktop와 mobile anchor에서 현재 section만 location으로 표시한다.
+     * Fast Refresh 뒤에도 현재 carousel DOM을 다시 찾는다.
+     */
+    function getCarousel(): HTMLElement | null {
+      return document.querySelector<HTMLElement>("[data-carousel]");
+    }
+
+    /**
+     * 현재 렌더링된 다섯 section을 navigation 순서대로 반환한다.
+     */
+    function getSections(): readonly HTMLElement[] {
+      return PORTFOLIO_SECTIONS.map((section) =>
+        document.getElementById(section.id),
+      ).filter((section): section is HTMLElement => section !== null);
+    }
+
+    /**
+     * desktop와 mobile navigation에서 현재 section만 표시한다.
      */
     function setCurrentSection(sectionId: PortfolioSectionId): void {
-      /**
-       * 두 navigation의 모든 링크를 같은 상태로 갱신한다.
-       */
+      const navigationLinks = document.querySelectorAll<HTMLAnchorElement>(
+        "a[data-nav]",
+      );
+
       for (const link of navigationLinks) {
-        /**
-         * 현재 section 링크에만 aria-current를 남긴다.
-         */
         if (link.dataset.nav === sectionId) {
           link.setAttribute("aria-current", "location");
         } else {
@@ -57,253 +61,215 @@ export function NavigationTracker() {
     }
 
     /**
-     * section이 현재 viewport의 navigation activation line을 포함하는지 확인한다.
+     * carousel 중앙선에 가장 가까운 section을 활성 카드로 판정한다.
      */
-    function containsActivationLine(
+    function getCenteredSection(): PortfolioSectionId | undefined {
+      const carousel = getCarousel();
+
+      if (!carousel) {
+        return undefined;
+      }
+
+      const carouselRect = carousel.getBoundingClientRect();
+      const activationLine = carouselRect.left + carouselRect.width / 2;
+      let nearestSectionId: PortfolioSectionId | undefined;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      for (const section of getSections()) {
+        const sectionRect = section.getBoundingClientRect();
+
+        if (sectionRect.width === 0 && sectionRect.height === 0) {
+          continue;
+        }
+
+        if (
+          sectionRect.left <= activationLine &&
+          sectionRect.right >= activationLine &&
+          isPortfolioSectionId(section.id)
+        ) {
+          return section.id;
+        }
+
+        const sectionCenter = sectionRect.left + sectionRect.width / 2;
+        const distance = Math.abs(sectionCenter - activationLine);
+
+        if (distance < nearestDistance && isPortfolioSectionId(section.id)) {
+          nearestDistance = distance;
+          nearestSectionId = section.id;
+        }
+      }
+
+      return nearestSectionId;
+    }
+
+    /**
+     * 지정한 section 카드를 carousel의 왼쪽 경계로 이동한다.
+     */
+    function scrollToSection(
       sectionId: PortfolioSectionId,
-      allowUnknownGeometry = false,
-    ): boolean {
+      behavior: ScrollBehavior,
+    ): void {
+      const carousel = getCarousel();
       const section = document.getElementById(sectionId);
 
-      if (!section) {
-        return false;
-      }
-
-      const activationLine = window.innerHeight * 0.3;
-      const sectionRect = section.getBoundingClientRect();
-
-      /**
-       * layout engine이 없는 단위 테스트에서는 교차 상태를 판정할 수 없다.
-       */
-      if (sectionRect.width === 0 && sectionRect.height === 0) {
-        return allowUnknownGeometry;
-      }
-
-      return (
-        sectionRect.top <= activationLine &&
-        sectionRect.bottom >= activationLine
-      );
-    }
-
-    /**
-     * 재클릭 또는 unmount 전에 이전 navigation scrollend listener를 제거한다.
-     */
-    function clearPendingScrollEndHandler(): void {
-      if (pendingScrollEndHandler) {
-        window.removeEventListener("scrollend", pendingScrollEndHandler);
-        pendingScrollEndHandler = undefined;
-      }
-
-      pendingScrollEndSectionId = undefined;
-
-      if (pendingScrollEndTimer !== undefined) {
-        window.clearTimeout(pendingScrollEndTimer);
-        pendingScrollEndTimer = undefined;
-      }
-    }
-
-    /**
-     * navigation scroll이 끝날 때 클릭 대상을 한 번만 current로 확정한다.
-     */
-    function confirmCurrentSectionOnScrollEnd(
-      sectionId: PortfolioSectionId,
-    ): void {
-      clearPendingScrollEndHandler();
-
-      const handleScrollEnd = (): void => {
-        /**
-         * navigation 대상이 실제 activation line에 도착한 경우에만 확정한다.
-         * 수동 스크롤에서 발생한 늦은 scrollend가 이전 클릭을 복원하지 않게 한다.
-         */
-        if (
-          window.location.hash === `#${sectionId}` &&
-          containsActivationLine(sectionId, true)
-        ) {
-          clearPendingScrollEndHandler();
-          setCurrentSection(sectionId);
-        }
-      };
-
-      pendingScrollEndHandler = handleScrollEnd;
-      pendingScrollEndSectionId = sectionId;
-      window.addEventListener("scrollend", handleScrollEnd);
-      pendingScrollEndTimer = window.setTimeout(
-        clearPendingScrollEndHandler,
-        scrollEndTimeoutMilliseconds,
-      );
-    }
-
-    /**
-     * hash 대상 section을 current로 표시하고 keyboard focus를 옮긴다.
-     */
-    function focusHashTarget(): void {
-      const sectionId = window.location.hash.slice(1);
-
-      /**
-       * 승인된 다섯 anchor 이외의 hash는 page focus를 변경하지 않는다.
-       */
-      if (!isPortfolioSectionId(sectionId)) {
+      if (!carousel || !section) {
         return;
       }
 
-      setCurrentSection(sectionId);
-      document.getElementById(sectionId)?.focus({ preventScroll: true });
+      const carouselRect = carousel.getBoundingClientRect();
+      const sectionRect = section.getBoundingClientRect();
+      const targetLeft =
+        carousel.scrollLeft + sectionRect.left - carouselRect.left;
+
+      if (typeof carousel.scrollTo === "function") {
+        carousel.scrollTo({ left: targetLeft, behavior });
+      } else {
+        carousel.scrollLeft = targetLeft;
+      }
     }
 
     /**
-     * 다른 hash navigation은 이전 click의 scrollend 확정을 취소하고 즉시 반영한다.
+     * 현재 가로 위치에 맞춰 두 navigation의 활성 번호를 갱신한다.
      */
-    function handleHashChange(): void {
-      const sectionId = window.location.hash.slice(1);
+    function syncCurrentSection(): void {
+      const sectionId = getCenteredSection();
 
-      if (pendingScrollEndSectionId !== sectionId) {
-        clearPendingScrollEndHandler();
+      if (sectionId) {
+        setCurrentSection(sectionId);
+      }
+    }
+
+    /**
+     * 고빈도 carousel scroll/resize 이벤트를 frame마다 한 번만 계산한다.
+     */
+    function scheduleCurrentSectionSync(): void {
+      if (pendingSyncFrame !== undefined) {
+        return;
       }
 
-      focusHashTarget();
+      pendingSyncFrame = window.requestAnimationFrame(() => {
+        pendingSyncFrame = undefined;
+        syncCurrentSection();
+      });
     }
 
     /**
-     * 같은 hash를 다시 누른 경우에도 target focus를 보장한다.
+     * document capture listener에서 carousel 자체의 scroll만 처리한다.
      */
-    function handleNavigationClick(event: Event): void {
-      const link = event.currentTarget;
+    function handleDocumentScroll(event: Event): void {
+      const target = event.target;
 
-      /**
-       * 등록 대상은 anchor로 한정하지만 런타임 타입도 확인한다.
-       */
-      if (!(link instanceof HTMLAnchorElement)) {
+      if (target instanceof Element && target.matches("[data-carousel]")) {
+        scheduleCurrentSectionSync();
+      }
+    }
+
+    /**
+     * 번호 또는 내부 section 링크를 가로 carousel 이동으로 전환한다.
+     */
+    function handleNavigationClick(event: MouseEvent): void {
+      const clickedElement = event.target;
+
+      if (!(clickedElement instanceof Element)) {
+        return;
+      }
+
+      const link = clickedElement.closest<HTMLAnchorElement>('a[href^="#"]');
+
+      if (!link) {
         return;
       }
 
       const sectionId = link.hash.slice(1);
 
-      /**
-       * 승인된 section 링크만 focus 동기화 대상으로 사용한다.
-       */
       if (!isPortfolioSectionId(sectionId)) {
         return;
       }
 
-      confirmCurrentSectionOnScrollEnd(sectionId);
+      event.preventDefault();
+
+      if (window.location.hash !== `#${sectionId}`) {
+        window.history.pushState(null, "", `#${sectionId}`);
+      }
+
       setCurrentSection(sectionId);
-      window.requestAnimationFrame(() => {
-        setCurrentSection(sectionId);
+      scrollToSection(sectionId, "smooth");
+
+      if (pendingFocusFrame !== undefined) {
+        window.cancelAnimationFrame(pendingFocusFrame);
+      }
+
+      pendingFocusFrame = window.requestAnimationFrame(() => {
+        pendingFocusFrame = undefined;
         document.getElementById(sectionId)?.focus({ preventScroll: true });
       });
     }
 
     /**
-     * 최초 hash가 있으면 hydrate 직후 해당 section 상태를 복원한다.
+     * browser history나 직접 입력한 hash를 해당 carousel 카드에 반영한다.
      */
-    focusHashTarget();
-    window.addEventListener("hashchange", handleHashChange);
-
-    /**
-     * skip link를 포함한 내부 anchor listener를 한 client leaf에서 함께 관리한다.
-     */
-    for (const link of hashLinks) {
-      link.addEventListener("click", handleNavigationClick);
-    }
-
-    let observer: IntersectionObserver | undefined;
-
-    /**
-     * focus된 hash section이 viewport activation line을 포함하면 그 section id를 반환한다.
-     */
-    function getActiveHashSectionAtActivationLine():
-      | PortfolioSectionId
-      | undefined {
+    function handleHistoryNavigation(): void {
       const sectionId = window.location.hash.slice(1);
 
-      /**
-       * 승인되지 않은 hash는 observer 우선순위에 개입하지 않는다.
-       */
       if (!isPortfolioSectionId(sectionId)) {
-        return undefined;
+        return;
       }
 
-      const hashSection = document.getElementById(sectionId);
-
-      /**
-       * keyboard focus가 실제 hash section에 남아 있을 때만 navigation 의도를 보존한다.
-       */
-      if (!hashSection || document.activeElement !== hashSection) {
-        return undefined;
-      }
-
-      /**
-       * 수동 스크롤로 activation line을 벗어나면 기존 observer 결과를 사용한다.
-       */
-      if (!containsActivationLine(sectionId)) {
-        return undefined;
-      }
-
-      return sectionId;
+      setCurrentSection(sectionId);
+      scrollToSection(sectionId, "smooth");
+      document.getElementById(sectionId)?.focus({ preventScroll: true });
     }
 
-    /**
-     * IntersectionObserver가 있는 브라우저에서 viewport 기반 current를 갱신한다.
-     */
-    if (typeof IntersectionObserver !== "undefined") {
-      observer = new IntersectionObserver(
-        (entries) => {
-          const activeHashSectionId =
-            getActiveHashSectionAtActivationLine();
+    const initialSectionId = window.location.hash.slice(1);
 
-          /**
-           * 최종 hash 위치에 남아 있으면 늦게 도착한 이전 section entry를 무시한다.
-           */
-          if (activeHashSectionId) {
-            setCurrentSection(activeHashSectionId);
-            return;
-          }
+    if (isPortfolioSectionId(initialSectionId)) {
+      const restoreInitialSection = (): void => {
+        setCurrentSection(initialSectionId);
+        scrollToSection(initialSectionId, "instant");
+        document
+          .getElementById(initialSectionId)
+          ?.focus({ preventScroll: true });
+      };
 
-          const currentEntry = entries
-            .filter((entry) => entry.isIntersecting)
-            .sort(
-              (left, right) => right.intersectionRatio - left.intersectionRatio,
-            )[0];
-
-          /**
-           * 교차한 승인 section이 있을 때만 navigation 상태를 변경한다.
-           */
-          if (
-            currentEntry &&
-            isPortfolioSectionId(currentEntry.target.id)
-          ) {
-            setCurrentSection(currentEntry.target.id);
-          }
-        },
-        {
-          rootMargin: "-24% 0px -62% 0px",
-          threshold: [0, 0.1, 0.5],
-        },
+      pendingFocusFrame = window.requestAnimationFrame(() => {
+        pendingFocusFrame = undefined;
+        restoreInitialSection();
+      });
+      pendingInitialHashTimer = window.setTimeout(
+        restoreInitialSection,
+        80,
       );
-
-      /**
-       * 정확히 다섯 콘텐츠 section을 관찰한다.
-       */
-      for (const section of sections) {
-        observer.observe(section);
-      }
+    } else {
+      setCurrentSection("introduce");
     }
 
-    /**
-     * unmount 시 global listener와 observer를 모두 제거한다.
-     */
-    return () => {
-      window.removeEventListener("hashchange", handleHashChange);
+    document.addEventListener("click", handleNavigationClick);
+    document.addEventListener("scroll", handleDocumentScroll, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("hashchange", handleHistoryNavigation);
+    window.addEventListener("popstate", handleHistoryNavigation);
+    window.addEventListener("resize", scheduleCurrentSectionSync);
 
-      /**
-       * 등록한 모든 내부 anchor click listener를 대칭적으로 제거한다.
-       */
-      for (const link of hashLinks) {
-        link.removeEventListener("click", handleNavigationClick);
+    return () => {
+      document.removeEventListener("click", handleNavigationClick);
+      document.removeEventListener("scroll", handleDocumentScroll, true);
+      window.removeEventListener("hashchange", handleHistoryNavigation);
+      window.removeEventListener("popstate", handleHistoryNavigation);
+      window.removeEventListener("resize", scheduleCurrentSectionSync);
+
+      if (pendingSyncFrame !== undefined) {
+        window.cancelAnimationFrame(pendingSyncFrame);
       }
 
-      clearPendingScrollEndHandler();
-      observer?.disconnect();
+      if (pendingFocusFrame !== undefined) {
+        window.cancelAnimationFrame(pendingFocusFrame);
+      }
+
+      if (pendingInitialHashTimer !== undefined) {
+        window.clearTimeout(pendingInitialHashTimer);
+      }
     };
   }, []);
 

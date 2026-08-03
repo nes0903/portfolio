@@ -21,7 +21,8 @@ export function PortfolioSection({
   title,
 }: PortfolioSectionProps) {
   const titleId = `${id}-title`;
-  const Heading = id === "introduce" ? "h1" : "h2";
+  const isIntroduction = id === "introduce";
+  const Heading = isIntroduction ? "h1" : "h2";
 
   return (
     <section
@@ -31,15 +32,21 @@ export function PortfolioSection({
       aria-labelledby={titleId}
       data-section={id}
     >
-      <div className="head">
-        <span className="num" aria-hidden="true">
-          {number}
-        </span>
-        <div>
-          <p className="eyebrow">{eyebrow}</p>
-          <Heading id={titleId}>{title}</Heading>
+      {isIntroduction ? (
+        <div className="head">
+          <span className="num" aria-hidden="true">
+            {number}
+          </span>
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <Heading id={titleId}>{title}</Heading>
+          </div>
         </div>
-      </div>
+      ) : (
+        <Heading className="sr-only" id={titleId}>
+          {title}
+        </Heading>
+      )}
       {children}
     </section>
   );
