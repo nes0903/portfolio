@@ -236,10 +236,7 @@ h4 {
   min-height: 0;
   overflow: visible;
   color: var(--paper);
-  background:
-    radial-gradient(circle at 82% 8%, rgba(255, 91, 73, 0.08), transparent 24rem),
-    linear-gradient(135deg, transparent 0 72%, rgba(255, 91, 73, 0.035) 72.2%),
-    #121216;
+  background: var(--film);
   perspective: 1600px;
   isolation: isolate;
 }
@@ -262,6 +259,7 @@ h4 {
   overflow-y: auto;
   color: var(--paper);
   background:
+    radial-gradient(circle at 82% 8%, rgba(255, 91, 73, 0.08), transparent 24rem),
     linear-gradient(135deg, transparent 0 72%, rgba(255, 91, 73, 0.035) 72.2%),
     #121216;
   border: 1px solid #303036;
@@ -346,7 +344,6 @@ h4 {
   min-height: 0;
   justify-content: flex-start;
   color: var(--paper);
-  background: transparent;
 }
 
 .section[data-section="introduce"]::before {
@@ -368,23 +365,19 @@ h4 {
 
 .section[data-section="skills"] {
   color: var(--paper);
-  background: transparent;
 }
 
 .section[data-section="career"] {
   color: var(--paper);
-  background: transparent;
 }
 
 .section[data-section="side-projects"] {
   color: var(--paper);
-  background: transparent;
 }
 
 .section[data-section="contact"] {
   min-height: 0;
   color: var(--paper);
-  background: transparent;
 }
 
 @keyframes frame-drift {

@@ -66,7 +66,7 @@ describe("Portfolio carousel shell CSS contract", () => {
   });
 
   it("원래 크기의 독립 card를 유지하고 중앙 바깥의 양옆 원형 위치에 배치한다", () => {
-    const baseSectionRule = cssRules.find(
+    const baseSectionRules = cssRules.filter(
       (rule) => rule.selector === ".section",
     );
     const adjacentCardRules = cssRules.filter((rule) =>
@@ -81,10 +81,16 @@ describe("Portfolio carousel shell CSS contract", () => {
       ".section",
       /position\s*:\s*absolute/,
     );
-    expect(baseSectionRule?.body).toMatch(/width\s*:\s*100%/);
-    expect(baseSectionRule?.body).toMatch(
-      /height\s*:\s*calc\(100%\s*-\s*var\(--card-top-gap\)\)/,
-    );
+    expect(
+      baseSectionRules.some((rule) => /width\s*:\s*100%/.test(rule.body)),
+    ).toBe(true);
+    expect(
+      baseSectionRules.some((rule) =>
+        /height\s*:\s*calc\(100%\s*-\s*var\(--card-top-gap\)\)/.test(
+          rule.body,
+        ),
+      ),
+    ).toBe(true);
     expect(adjacentCardRules).toHaveLength(2);
     adjacentCardRules.forEach((rule) => {
       expect(rule.body).not.toMatch(/scale\s*\(/);
@@ -107,6 +113,22 @@ describe("Portfolio carousel shell CSS contract", () => {
       '[data-carousel-offset="1"]',
       /transform\s*:/,
     );
+  });
+
+  it("carousel 무대가 아닌 각 card가 불투명한 전체 배경을 소유한다", () => {
+    const carouselRule = cssRules.find(
+      (rule) => rule.selector === ".portfolio-carousel",
+    );
+    const sectionVariantRules = cssRules.filter((rule) =>
+      rule.selector.includes(".section[data-section="),
+    );
+
+    expect(carouselRule?.body).toMatch(/background\s*:\s*var\(--film\)/);
+    expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
+    expectSelectorDeclaration(".section", /#121216/);
+    sectionVariantRules.forEach((rule) => {
+      expect(rule.body).not.toMatch(/background\s*:\s*transparent/);
+    });
   });
 
   it("card 위에 배경이 그대로 비치는 여백을 두고 모서리를 둥글게 표시한다", () => {
