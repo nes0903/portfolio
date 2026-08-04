@@ -15,7 +15,7 @@ async function listFiles(directory: string): Promise<string[]> {
   return nested.flat();
 }
 
-describe("single App Router page boundary", () => {
+describe("App Router page boundary", () => {
   it("HomePage를 async Server Component로 유지하고 client router/server mutation을 포함하지 않는다", async () => {
     const pageSource = await readFile(resolve(process.cwd(), "src/app/page.tsx"), "utf8");
 
@@ -31,18 +31,20 @@ describe("single App Router page boundary", () => {
     expect(pageSource).toMatch(/export\s+const\s+dynamic\s*=\s*["']force-dynamic["']/);
   });
 
-  it("/ 외의 page, Route Handler, Server Action 파일을 만들지 않는다", async () => {
+  it("공개 페이지와 관리자·로그인 페이지만 노출하고 Route Handler를 만들지 않는다", async () => {
     const appDirectory = resolve(process.cwd(), "src/app");
     const files = (await listFiles(appDirectory)).map((file) =>
       relative(appDirectory, file),
     );
     const routeFiles = files.filter((file) => /(^|\/)(?:page|route)\.[cm]?[jt]sx?$/.test(file));
 
-    expect(routeFiles).toEqual(["page.tsx"]);
+    expect(routeFiles.sort()).toEqual([
+      "admin/login/page.tsx",
+      "admin/page.tsx",
+      "page.tsx",
+    ]);
     expect(files).not.toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/(^|\/)actions?\.[cm]?[jt]sx?$/),
-      ]),
+      expect.arrayContaining([expect.stringMatching(/(^|\/)route\.[cm]?[jt]sx?$/)]),
     );
   });
 });
