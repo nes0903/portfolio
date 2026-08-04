@@ -70,7 +70,21 @@ values (
         "url": "https://github.com/example-portfolio-profile",
         "order": 1
       }
-    ]
+    ],
+    "visuals": {
+      "pageBackgroundColor": "#09090b",
+      "textColor": "#eeeae2",
+      "mutedTextColor": "#a8a6a0",
+      "accentColor": "#ff5b49",
+      "cardRadius": 22,
+      "sections": {
+        "introduce": { "backgroundColor": "#121216", "textColor": "#eeeae2", "accentColor": "#ff5b49", "backgroundImage": null },
+        "skills": { "backgroundColor": "#121216", "textColor": "#eeeae2", "accentColor": "#ff5b49", "backgroundImage": null },
+        "career": { "backgroundColor": "#121216", "textColor": "#eeeae2", "accentColor": "#ff5b49", "backgroundImage": null },
+        "side-projects": { "backgroundColor": "#121216", "textColor": "#eeeae2", "accentColor": "#ff5b49", "backgroundImage": null },
+        "contact": { "backgroundColor": "#121216", "textColor": "#eeeae2", "accentColor": "#ff5b49", "backgroundImage": null }
+      }
+    }
   }
   $portfolio$::jsonb,
   true,

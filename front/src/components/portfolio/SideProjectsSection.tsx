@@ -1,16 +1,25 @@
 import { EmptyState } from "@/components/portfolio/EmptyState";
+import {
+  createEditableTextProps,
+  type PortfolioEditorBridge,
+} from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
-import type { SideProject } from "@/lib/content/types";
+import type { PortfolioSectionVisual, SideProject } from "@/lib/content/types";
+import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
 
 interface SideProjectsSectionProps {
+  readonly editor?: PortfolioEditorBridge;
   readonly sideProjects: readonly SideProject[];
+  readonly visual?: PortfolioSectionVisual;
 }
 
 /**
  * 승인된 프로젝트 필드와 제공된 HTTPS 링크만 native disclosure에 표시한다.
  */
 export function SideProjectsSection({
+  editor,
   sideProjects,
+  visual = DEFAULT_SECTION_VISUAL,
 }: SideProjectsSectionProps) {
   return (
     <PortfolioSection
@@ -18,6 +27,8 @@ export function SideProjectsSection({
       number="04"
       eyebrow="사이드 프로젝트"
       title="사이드 프로젝트"
+      editor={editor}
+      visual={visual}
     >
       {sideProjects.length === 0 ? (
         <EmptyState>표시할 사이드 프로젝트가 없습니다.</EmptyState>
@@ -30,9 +41,31 @@ export function SideProjectsSection({
 
             return (
               <article className="card project" key={project.id}>
-                <p className="eyebrow">{project.role}</p>
-                <h3>{project.name}</h3>
-                <p>{project.description}</p>
+                <p
+                  className="eyebrow"
+                  {...createEditableTextProps(
+                    editor,
+                    `sideProjects:${project.id}:role`,
+                  )}
+                >
+                  {project.role}
+                </p>
+                <h3
+                  {...createEditableTextProps(
+                    editor,
+                    `sideProjects:${project.id}:name`,
+                  )}
+                >
+                  {project.name}
+                </h3>
+                <p
+                  {...createEditableTextProps(
+                    editor,
+                    `sideProjects:${project.id}:description`,
+                  )}
+                >
+                  {project.description}
+                </p>
                 <ul className="chips" aria-label={`${project.name} 기술`}>
                   {project.skills.map((skill) => (
                     <li className="chip" key={skill}>

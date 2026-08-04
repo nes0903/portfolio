@@ -84,6 +84,34 @@ describe("portfolio_documents migration", () => {
     );
     expect(seed).toContain('"careerWorks"');
     expect(seed).toContain('"sideProjects"');
+    expect(seed).toContain('"visuals"');
     expect(seed).toMatch(/\$portfolio\$::jsonb,\s+true,\s+null/);
+  });
+
+  it("공개 이미지 버킷에는 소유자 경로의 승인된 이미지 형식만 쓰게 한다", async () => {
+    const migration = await readMigration(
+      "_create_portfolio_assets_bucket.sql",
+    );
+
+    expect(migration).toMatch(
+      /insert into storage\.buckets[\s\S]*?'portfolio-assets'[\s\S]*?true[\s\S]*?5242880/,
+    );
+    expect(migration).toMatch(
+      /for insert\s+to authenticated\s+with check \([\s\S]*?bucket_id = 'portfolio-assets'[\s\S]*?storage\.foldername\(name\)\)\[1\] = \(select auth\.uid\(\)::text\)/,
+    );
+    expect(migration).toMatch(/image\/jpeg/);
+    expect(migration).not.toMatch(/for insert\s+to anon/);
+  });
+
+  it("소유자만 자신의 이미지 객체를 조회·교체·삭제할 수 있다", async () => {
+    const migration = await readMigration(
+      "_create_portfolio_assets_bucket.sql",
+    );
+
+    expect(migration).toMatch(/for select\s+to authenticated/);
+    expect(migration).toMatch(
+      /for update\s+to authenticated\s+using \([\s\S]*?with check \(/,
+    );
+    expect(migration).toMatch(/for delete\s+to authenticated/);
   });
 });

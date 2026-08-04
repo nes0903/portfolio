@@ -18,12 +18,12 @@ export default async function AdminPage() {
   const content = await loadEditablePortfolioContent(access.supabase, access.slug);
 
   return (
-    <main className="admin-page">
+    <div className="admin-page">
       <header className="admin-header">
         <div>
           <span className="admin-kicker">PORTFOLIO CMS</span>
-          <h1>콘텐츠 편집</h1>
-          <p>섹션별 내용을 수정하고 저장하면 공개 화면이 바로 갱신됩니다.</p>
+          <h1>비주얼 편집</h1>
+          <p>실제 화면에서 문구·색상·배경 이미지를 수정하고 저장합니다.</p>
         </div>
         <div className="admin-header-actions">
           <Link className="admin-button" href="/" target="_blank">
@@ -38,6 +38,6 @@ export default async function AdminPage() {
       </header>
 
       <PortfolioEditor initialContent={content} />
-    </main>
+    </div>
   );
 }

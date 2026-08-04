@@ -3,6 +3,7 @@ import {
   careersSchema,
   contactsSchema,
   introduceSchema,
+  portfolioVisualsSchema,
   sideProjectsSchema,
   skillsSchema,
 } from "@/lib/content/schema";
@@ -25,6 +26,7 @@ export const portfolioDocumentContentSchema = z
     careerWorks: careerWorksSchema,
     sideProjects: sideProjectsSchema,
     contacts: contactsSchema,
+    visuals: portfolioVisualsSchema,
   })
   .strict();
 
@@ -94,6 +96,7 @@ export function createPortfolioContentViewModel(
     careers: joinedCareers,
     sideProjects: sortByOrder(content.sideProjects),
     contacts: sortByOrder(content.contacts),
+    visuals: content.visuals,
   });
 }
 

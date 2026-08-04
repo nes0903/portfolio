@@ -14,6 +14,7 @@ import {
   sideProjectsSchema,
   skillsSchema,
 } from "@/lib/content/schema";
+import { DEFAULT_PORTFOLIO_VISUALS } from "@/lib/content/schema";
 import { createPortfolioContentViewModel } from "@/lib/content/model";
 import type { PortfolioContentViewModel } from "@/lib/content/types";
 
@@ -174,5 +175,6 @@ export async function loadPortfolioContent(
     careerWorks,
     sideProjects,
     contacts,
+    visuals: DEFAULT_PORTFOLIO_VISUALS,
   });
 }

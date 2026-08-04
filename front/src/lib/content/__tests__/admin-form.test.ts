@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { normalizePortfolioContentForSave } from "@/lib/content/admin-form";
 import type { PortfolioDocumentContent } from "@/lib/content/model";
 import { createValidContentFiles } from "@/test/content-fixtures";
+import { DEFAULT_PORTFOLIO_VISUALS } from "@/lib/content/schema";
 
 function createDocument(): PortfolioDocumentContent {
   const files = createValidContentFiles();
@@ -25,6 +26,7 @@ function createDocument(): PortfolioDocumentContent {
       order: 6,
     })),
     contacts: files["contact.json"].map((contact) => ({ ...contact, order: 5 })),
+    visuals: DEFAULT_PORTFOLIO_VISUALS,
   };
 }
 

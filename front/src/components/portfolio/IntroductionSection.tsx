@@ -1,11 +1,18 @@
 import { Fragment } from "react";
 
 import { EmptyState } from "@/components/portfolio/EmptyState";
+import {
+  createEditableTextProps,
+  type PortfolioEditorBridge,
+} from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
-import type { Introduce } from "@/lib/content/types";
+import type { Introduce, PortfolioSectionVisual } from "@/lib/content/types";
+import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
 
 interface IntroductionSectionProps {
+  readonly editor?: PortfolioEditorBridge;
   readonly introduce: Introduce;
+  readonly visual?: PortfolioSectionVisual;
 }
 
 interface ParagraphLinesProps {
@@ -34,7 +41,9 @@ function ParagraphLines({ paragraph }: ParagraphLinesProps) {
  * 검증된 introduce JSON을 제목과 semantic paragraph로만 렌더링한다.
  */
 export function IntroductionSection({
+  editor,
   introduce,
+  visual = DEFAULT_SECTION_VISUAL,
 }: IntroductionSectionProps) {
   const paragraphs = introduce.content
     .split(/\r?\n\s*\r?\n/)
@@ -46,12 +55,24 @@ export function IntroductionSection({
       number="01"
       eyebrow="소개"
       title={introduce.title}
+      titleField="introduce.title"
+      editor={editor}
+      visual={visual}
     >
-      {paragraphs.map((paragraph, index) => (
-        <p className="lead" key={index}>
-          <ParagraphLines paragraph={paragraph} />
+      {editor ? (
+        <p
+          className="lead visual-inline-multiline"
+          {...createEditableTextProps(editor, "introduce.content")}
+        >
+          {introduce.content}
         </p>
-      ))}
+      ) : (
+        paragraphs.map((paragraph, index) => (
+          <p className="lead" key={index}>
+            <ParagraphLines paragraph={paragraph} />
+          </p>
+        ))
+      )}
       <div className="actions">
         <a className="btn" href="#career">
           경력 근거 보기

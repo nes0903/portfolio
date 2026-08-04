@@ -3,6 +3,7 @@
 import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadPortfolioContent } from "@/lib/content/loader";
+import { DEFAULT_PORTFOLIO_VISUALS } from "@/lib/content/schema";
 import {
   createValidContentFiles,
   getCollection,
@@ -163,6 +164,7 @@ describe("loadPortfolioContent", () => {
           order: 2,
         },
       ],
+      visuals: DEFAULT_PORTFOLIO_VISUALS,
     });
   });
 

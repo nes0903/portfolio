@@ -6,10 +6,23 @@ import { z } from "zod";
 
 import { getPortfolioAdminAccess } from "@/lib/auth/admin";
 import type { AdminFormState } from "@/lib/auth/form-state";
-import { portfolioDocumentContentSchema } from "@/lib/content/model";
+import {
+  portfolioDocumentContentSchema,
+  type PortfolioDocumentContent,
+} from "@/lib/content/model";
 import { createAuthenticatedServerSupabaseClient } from "@/lib/supabase/auth-server";
 
 const serializedContentSchema = z.string().min(2).max(512_000);
+
+function collectPortfolioAssetPaths(
+  content: PortfolioDocumentContent,
+): Set<string> {
+  return new Set(
+    Object.values(content.visuals.sections)
+      .map((visual) => visual.backgroundImage?.path)
+      .filter((path): path is string => path !== undefined),
+  );
+}
 
 /**
  * 관리자 편집 내용을 재검증한 뒤 owner 조건과 RLS를 모두 적용해 저장한다.
@@ -55,6 +68,49 @@ export async function savePortfolioAction(
     };
   }
 
+  for (const visual of Object.values(contentResult.data.visuals.sections)) {
+    const image = visual.backgroundImage;
+
+    if (!image) continue;
+
+    const expectedUrl = access.supabase.storage
+      .from("portfolio-assets")
+      .getPublicUrl(image.path).data.publicUrl;
+
+    if (
+      !image.path.startsWith(`${access.userId}/`) ||
+      image.url !== expectedUrl
+    ) {
+      return {
+        message: "현재 관리자 계정이 소유한 포트폴리오 이미지만 사용할 수 있습니다.",
+        status: "error",
+      };
+    }
+  }
+
+  const { data: currentRow, error: currentRowError } = await access.supabase
+    .from("portfolio_documents")
+    .select("content")
+    .eq("slug", access.slug)
+    .eq("owner_id", access.userId)
+    .single<{ readonly content: unknown }>();
+
+  const currentContentResult = portfolioDocumentContentSchema.safeParse(
+    currentRow?.content,
+  );
+
+  if (currentRowError || !currentContentResult.success) {
+    return {
+      message: "현재 공개 콘텐츠를 확인하지 못해 저장을 중단했습니다.",
+      status: "error",
+    };
+  }
+
+  const previousAssetPaths = collectPortfolioAssetPaths(
+    currentContentResult.data,
+  );
+  const nextAssetPaths = collectPortfolioAssetPaths(contentResult.data);
+
   const { data, error } = await access.supabase
     .from("portfolio_documents")
     .update({
@@ -71,6 +127,16 @@ export async function savePortfolioAction(
       message: "저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
       status: "error",
     };
+  }
+
+  const removedAssetPaths = [...previousAssetPaths].filter(
+    (path) => !nextAssetPaths.has(path),
+  );
+
+  if (removedAssetPaths.length > 0) {
+    await access.supabase.storage
+      .from("portfolio-assets")
+      .remove(removedAssetPaths);
   }
 
   revalidatePath("/");

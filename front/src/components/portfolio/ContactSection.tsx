@@ -1,16 +1,27 @@
 import { CopyContactButton } from "@/components/portfolio/CopyContactButton";
 import { EmptyState } from "@/components/portfolio/EmptyState";
+import {
+  createEditableTextProps,
+  type PortfolioEditorBridge,
+} from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
-import type { Contact } from "@/lib/content/types";
+import type { Contact, PortfolioSectionVisual } from "@/lib/content/types";
+import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
 
 interface ContactSectionProps {
   readonly contacts: readonly Contact[];
+  readonly editor?: PortfolioEditorBridge;
+  readonly visual?: PortfolioSectionVisual;
 }
 
 /**
  * 승인된 이메일과 HTTPS 외부 프로필을 접근 가능한 연락처 목록으로 표시한다.
  */
-export function ContactSection({ contacts }: ContactSectionProps) {
+export function ContactSection({
+  contacts,
+  editor,
+  visual = DEFAULT_SECTION_VISUAL,
+}: ContactSectionProps) {
   const emailContact = contacts.find(
     (contact) => contact.channel === "email",
   );
@@ -24,10 +35,20 @@ export function ContactSection({ contacts }: ContactSectionProps) {
       number="05"
       eyebrow="연락처"
       title="연락처"
+      editor={editor}
+      visual={visual}
     >
       <div className="contact">
         {emailContact ? (
-          <code className="contact-value">{emailContact.value}</code>
+          <code
+            className="contact-value"
+            {...createEditableTextProps(
+              editor,
+              `contacts:${emailContact.id}:value`,
+            )}
+          >
+            {emailContact.value}
+          </code>
         ) : (
           <code className="contact-value">[EMAIL]</code>
         )}
@@ -71,13 +92,24 @@ export function ContactSection({ contacts }: ContactSectionProps) {
           <ul className="channels" aria-label="연락처">
             {externalContacts.map((contact) => (
               <li className="channel" key={contact.id}>
-                <strong>{contact.label}</strong>
+                <strong
+                  {...createEditableTextProps(
+                    editor,
+                    `contacts:${contact.id}:label`,
+                  )}
+                >
+                  {contact.label}
+                </strong>
                 <a
                   className="contact-value"
                   href={contact.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`${contact.label}: ${contact.value} (새 창)`}
+                  {...createEditableTextProps(
+                    editor,
+                    `contacts:${contact.id}:value`,
+                  )}
                 >
                   {contact.value}
                 </a>

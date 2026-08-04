@@ -1,12 +1,21 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { savePortfolioAction } from "@/app/admin/actions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import {
+  PORTFOLIO_SECTIONS,
+  type PortfolioSectionId,
+} from "@/components/layout/navigation";
+import { PortfolioExperience } from "@/components/portfolio/PortfolioExperience";
 import { initialAdminFormState } from "@/lib/auth/form-state";
 import { normalizePortfolioContentForSave } from "@/lib/content/admin-form";
-import type { PortfolioDocumentContent } from "@/lib/content/model";
+import {
+  createPortfolioContentViewModel,
+  type PortfolioDocumentContent,
+} from "@/lib/content/model";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 interface PortfolioEditorProps {
   readonly initialContent: PortfolioDocumentContent;
@@ -77,13 +86,421 @@ function splitCommaSeparated(value: string): string[] {
     .filter(Boolean);
 }
 
+const SECTION_LABELS: Readonly<Record<PortfolioSectionId, string>> = {
+  introduce: "소개",
+  skills: "기술",
+  career: "경력",
+  "side-projects": "사이드 프로젝트",
+  contact: "연락처",
+};
+
+const IMAGE_EXTENSIONS: Readonly<Record<string, string>> = {
+  "image/avif": "avif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+interface ColorFieldProps {
+  readonly label: string;
+  readonly onChange: (value: string) => void;
+  readonly value: string;
+}
+
+function ColorField({ label, onChange, value }: ColorFieldProps) {
+  return (
+    <label className="admin-field admin-color-field">
+      <span>{label}</span>
+      <span className="admin-color-control">
+        <input
+          aria-label={`${label} 색상 선택`}
+          onChange={(event) => onChange(event.target.value)}
+          type="color"
+          value={value}
+        />
+        <code>{value.toUpperCase()}</code>
+      </span>
+    </label>
+  );
+}
+
+interface SectionVisualControlsProps {
+  readonly disabled: boolean;
+  readonly onChange: (
+    patch: Partial<PortfolioDocumentContent["visuals"]["sections"][PortfolioSectionId]>,
+  ) => void;
+  readonly onRemoveImage: () => void;
+  readonly onUploadImage: (file: File) => void;
+  readonly sectionId: PortfolioSectionId;
+  readonly visual: PortfolioDocumentContent["visuals"]["sections"][PortfolioSectionId];
+}
+
+function SectionVisualControls({
+  disabled,
+  onChange,
+  onRemoveImage,
+  onUploadImage,
+  sectionId,
+  visual,
+}: SectionVisualControlsProps) {
+  const image = visual.backgroundImage;
+
+  return (
+    <div className="admin-visual-controls">
+      <div className="admin-field-grid">
+        <ColorField
+          label="카드 배경색"
+          onChange={(backgroundColor) => onChange({ backgroundColor })}
+          value={visual.backgroundColor}
+        />
+        <ColorField
+          label="글자색"
+          onChange={(textColor) => onChange({ textColor })}
+          value={visual.textColor}
+        />
+        <ColorField
+          label="강조색"
+          onChange={(accentColor) => onChange({ accentColor })}
+          value={visual.accentColor}
+        />
+        <label className="admin-field">
+          <span>배경 사진</span>
+          <input
+            accept="image/avif,image/jpeg,image/png,image/webp"
+            disabled={disabled}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) onUploadImage(file);
+              event.target.value = "";
+            }}
+            type="file"
+          />
+        </label>
+      </div>
+
+      {image ? (
+        <div className="admin-image-controls">
+          <Field
+            label="이미지 설명"
+            onChange={(alt) =>
+              onChange({ backgroundImage: { ...image, alt } })
+            }
+            value={image.alt}
+          />
+          <label className="admin-field">
+            <span>가로 위치 {image.positionX}%</span>
+            <input
+              max="100"
+              min="0"
+              onChange={(event) =>
+                onChange({
+                  backgroundImage: {
+                    ...image,
+                    positionX: Number(event.target.value),
+                  },
+                })
+              }
+              type="range"
+              value={image.positionX}
+            />
+          </label>
+          <label className="admin-field">
+            <span>세로 위치 {image.positionY}%</span>
+            <input
+              max="100"
+              min="0"
+              onChange={(event) =>
+                onChange({
+                  backgroundImage: {
+                    ...image,
+                    positionY: Number(event.target.value),
+                  },
+                })
+              }
+              type="range"
+              value={image.positionY}
+            />
+          </label>
+          <label className="admin-field">
+            <span>배경 덮개 {Math.round(image.overlayOpacity * 100)}%</span>
+            <input
+              max="0.95"
+              min="0"
+              onChange={(event) =>
+                onChange({
+                  backgroundImage: {
+                    ...image,
+                    overlayOpacity: Number(event.target.value),
+                  },
+                })
+              }
+              step="0.05"
+              type="range"
+              value={image.overlayOpacity}
+            />
+          </label>
+          <button
+            className="admin-remove-button"
+            disabled={disabled}
+            onClick={onRemoveImage}
+            type="button"
+          >
+            {SECTION_LABELS[sectionId]} 배경 사진 삭제
+          </button>
+        </div>
+      ) : (
+        <p className="admin-control-note">
+          사진을 올리면 카드 배경에 즉시 미리보기 됩니다.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   const [content, setContent] = useState(initialContent);
+  const [selectedSection, setSelectedSection] =
+    useState<PortfolioSectionId>("introduce");
+  const [assetMessage, setAssetMessage] = useState("");
+  const [uploadingSection, setUploadingSection] =
+    useState<PortfolioSectionId | null>(null);
   const [state, formAction] = useActionState(
     savePortfolioAction,
     initialAdminFormState,
   );
-  const normalizedContent = normalizePortfolioContentForSave(content);
+  const normalizedContent = useMemo(
+    () => normalizePortfolioContentForSave(content),
+    [content],
+  );
+  const previewContent = useMemo(
+    () => createPortfolioContentViewModel(normalizedContent),
+    [normalizedContent],
+  );
+
+  function selectSection(sectionId: PortfolioSectionId): void {
+    setSelectedSection(sectionId);
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-admin-section="${sectionId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+
+  function updateSectionVisual(
+    sectionId: PortfolioSectionId,
+    patch: Partial<
+      PortfolioDocumentContent["visuals"]["sections"][PortfolioSectionId]
+    >,
+  ): void {
+    setContent((current) => ({
+      ...current,
+      visuals: {
+        ...current.visuals,
+        sections: {
+          ...current.visuals.sections,
+          [sectionId]: {
+            ...current.visuals.sections[sectionId],
+            ...patch,
+          },
+        },
+      },
+    }));
+  }
+
+  async function uploadSectionImage(
+    sectionId: PortfolioSectionId,
+    file: File,
+  ): Promise<void> {
+    const extension = IMAGE_EXTENSIONS[file.type];
+
+    if (!extension) {
+      setAssetMessage("JPEG, PNG, WebP, AVIF 이미지만 업로드할 수 있습니다.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAssetMessage("이미지는 5MB 이하여야 합니다.");
+      return;
+    }
+
+    setUploadingSection(sectionId);
+    setAssetMessage("이미지를 업로드하고 있습니다.");
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setAssetMessage("로그인 세션을 확인할 수 없습니다.");
+        return;
+      }
+
+      const path = `${userData.user.id}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from("portfolio-assets")
+        .upload(path, file, {
+          cacheControl: "3600",
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setAssetMessage(`이미지를 업로드하지 못했습니다. (${uploadError.message})`);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("portfolio-assets")
+        .getPublicUrl(path);
+
+      updateSectionVisual(sectionId, {
+        backgroundImage: {
+          alt: `${SECTION_LABELS[sectionId]} 배경 이미지`,
+          overlayOpacity: 0.42,
+          path,
+          positionX: 50,
+          positionY: 50,
+          url: publicUrlData.publicUrl,
+        },
+      });
+
+      setAssetMessage("이미지를 업로드했습니다. 저장하면 공개 화면에 반영됩니다.");
+    } catch {
+      setAssetMessage("이미지 업로드 중 네트워크 오류가 발생했습니다.");
+    } finally {
+      setUploadingSection(null);
+    }
+  }
+
+  function removeSectionImage(sectionId: PortfolioSectionId): void {
+    const image = content.visuals.sections[sectionId].backgroundImage;
+
+    if (!image) return;
+
+    updateSectionVisual(sectionId, { backgroundImage: null });
+    setAssetMessage("배경 이미지를 제거했습니다. 저장 후 파일이 정리됩니다.");
+  }
+
+  function commitInlineText(field: string, value: string): void {
+    const normalizedValue =
+      field === "introduce.content"
+        ? value.trim()
+        : value.replace(/\s+/g, " ").trim();
+
+    if (!normalizedValue) {
+      setAssetMessage("필수 문구는 비워둘 수 없습니다.");
+      return;
+    }
+
+    if (field === "introduce.title") {
+      setContent((current) => ({
+        ...current,
+        introduce: { ...current.introduce, title: normalizedValue },
+      }));
+      return;
+    }
+
+    if (field === "introduce.content") {
+      setContent((current) => ({
+        ...current,
+        introduce: { ...current.introduce, content: normalizedValue },
+      }));
+      return;
+    }
+
+    if (field.startsWith("skill-category:")) {
+      const skillIds = new Set(field.slice("skill-category:".length).split(","));
+      setContent((current) => ({
+        ...current,
+        skills: current.skills.map((skill) =>
+          skillIds.has(skill.id)
+            ? { ...skill, category: normalizedValue }
+            : skill,
+        ),
+      }));
+      return;
+    }
+
+    const [collection, id, key] = field.split(":");
+
+    if (!collection || !id || !key) return;
+
+    setContent((current) => {
+      if (collection === "skills" && key === "name") {
+        return {
+          ...current,
+          skills: current.skills.map((item) =>
+            item.id === id ? { ...item, name: normalizedValue } : item,
+          ),
+        };
+      }
+
+      if (collection === "careers") {
+        return {
+          ...current,
+          careers: current.careers.map((item) => {
+            if (item.id !== id) return item;
+            if (key === "company") return { ...item, company: normalizedValue };
+            if (key === "role") return { ...item, role: normalizedValue };
+            if (key === "summary") return { ...item, summary: normalizedValue };
+            return item;
+          }),
+        };
+      }
+
+      if (collection === "careerWorks") {
+        return {
+          ...current,
+          careerWorks: current.careerWorks.map((item) => {
+            if (item.id !== id) return item;
+            if (key === "title") return { ...item, title: normalizedValue };
+            if (key === "description") {
+              return { ...item, description: normalizedValue };
+            }
+            return item;
+          }),
+        };
+      }
+
+      if (collection === "sideProjects") {
+        return {
+          ...current,
+          sideProjects: current.sideProjects.map((item) => {
+            if (item.id !== id) return item;
+            if (key === "name") return { ...item, name: normalizedValue };
+            if (key === "role") return { ...item, role: normalizedValue };
+            if (key === "description") {
+              return { ...item, description: normalizedValue };
+            }
+            return item;
+          }),
+        };
+      }
+
+      if (collection === "contacts") {
+        return {
+          ...current,
+          contacts: current.contacts.map((item) => {
+            if (item.id !== id) return item;
+            if (key === "label") return { ...item, label: normalizedValue };
+            if (key === "value") {
+              return {
+                ...item,
+                value: normalizedValue,
+                url:
+                  item.channel === "email"
+                    ? `mailto:${normalizedValue}`
+                    : item.url,
+              };
+            }
+            return item;
+          }),
+        };
+      }
+
+      return current;
+    });
+  }
 
   return (
     <form
@@ -97,13 +514,142 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         value={JSON.stringify(normalizedContent)}
       />
 
-      <section className="admin-edit-section">
+      <div className="visual-editor-workspace">
+        <section className="visual-preview-panel" aria-label="실시간 미리보기">
+          <div className="visual-preview-toolbar">
+            <div>
+              <strong>실제 화면 미리보기</strong>
+              <span>글자를 직접 눌러 수정하거나 카드를 선택하세요.</span>
+            </div>
+            <div className="visual-section-tabs" aria-label="편집할 섹션">
+              {PORTFOLIO_SECTIONS.map((section) => (
+                <button
+                  aria-pressed={selectedSection === section.id}
+                  className="admin-button"
+                  key={section.id}
+                  onClick={() => {
+                    selectSection(section.id);
+                    document
+                      .querySelector<HTMLAnchorElement>(
+                        `[data-editor-preview] a[data-nav="${section.id}"]`,
+                      )
+                      ?.click();
+                  }}
+                  type="button"
+                >
+                  {section.number} {section.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="visual-preview-viewport">
+            <PortfolioExperience
+              content={previewContent}
+              editor={{
+                onSelectSection: selectSection,
+                onTextCommit: commitInlineText,
+                selectedSection,
+              }}
+              showSkipLink={false}
+            />
+          </div>
+        </section>
+
+        <aside className="visual-editor-inspector" aria-label="디자인 속성">
+          <section className="admin-edit-section admin-theme-section">
+            <div className="admin-section-heading">
+              <div>
+                <span>STYLE</span>
+                <h2>전체 디자인</h2>
+              </div>
+            </div>
+            <div className="admin-field-grid">
+              <ColorField
+                label="페이지 배경색"
+                onChange={(pageBackgroundColor) =>
+                  setContent((current) => ({
+                    ...current,
+                    visuals: { ...current.visuals, pageBackgroundColor },
+                  }))
+                }
+                value={content.visuals.pageBackgroundColor}
+              />
+              <ColorField
+                label="기본 글자색"
+                onChange={(textColor) =>
+                  setContent((current) => ({
+                    ...current,
+                    visuals: { ...current.visuals, textColor },
+                  }))
+                }
+                value={content.visuals.textColor}
+              />
+              <ColorField
+                label="보조 글자색"
+                onChange={(mutedTextColor) =>
+                  setContent((current) => ({
+                    ...current,
+                    visuals: { ...current.visuals, mutedTextColor },
+                  }))
+                }
+                value={content.visuals.mutedTextColor}
+              />
+              <ColorField
+                label="전체 강조색"
+                onChange={(accentColor) =>
+                  setContent((current) => ({
+                    ...current,
+                    visuals: { ...current.visuals, accentColor },
+                  }))
+                }
+                value={content.visuals.accentColor}
+              />
+              <label className="admin-field admin-field-wide">
+                <span>카드 모서리 {content.visuals.cardRadius}px</span>
+                <input
+                  max="40"
+                  min="8"
+                  onChange={(event) => {
+                    const cardRadius = Number(event.target.value);
+                    setContent((current) => ({
+                      ...current,
+                      visuals: { ...current.visuals, cardRadius },
+                    }));
+                  }}
+                  type="range"
+                  value={content.visuals.cardRadius}
+                />
+              </label>
+            </div>
+          </section>
+
+          {assetMessage ? (
+            <p className="admin-asset-message" role="status">
+              {assetMessage}
+            </p>
+          ) : null}
+
+      <section
+        className="admin-edit-section"
+        data-admin-section="introduce"
+        data-selected={selectedSection === "introduce" ? "true" : undefined}
+      >
         <div className="admin-section-heading">
           <div>
             <span>01</span>
             <h2>소개</h2>
           </div>
         </div>
+        <SectionVisualControls
+          disabled={uploadingSection === "introduce"}
+          onChange={(visualPatch) =>
+            updateSectionVisual("introduce", visualPatch)
+          }
+          onRemoveImage={() => removeSectionImage("introduce")}
+          onUploadImage={(file) => void uploadSectionImage("introduce", file)}
+          sectionId="introduce"
+          visual={content.visuals.sections.introduce}
+        />
         <div className="admin-field-grid">
           <Field
             label="제목"
@@ -129,7 +675,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
       </section>
 
-      <section className="admin-edit-section">
+      <section
+        className="admin-edit-section"
+        data-admin-section="skills"
+        data-selected={selectedSection === "skills" ? "true" : undefined}
+      >
         <div className="admin-section-heading">
           <div>
             <span>02</span>
@@ -156,6 +706,14 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             기술 추가
           </button>
         </div>
+        <SectionVisualControls
+          disabled={uploadingSection === "skills"}
+          onChange={(visualPatch) => updateSectionVisual("skills", visualPatch)}
+          onRemoveImage={() => removeSectionImage("skills")}
+          onUploadImage={(file) => void uploadSectionImage("skills", file)}
+          sectionId="skills"
+          visual={content.visuals.sections.skills}
+        />
         <div className="admin-item-list">
           {content.skills.map((skill, index) => (
             <fieldset className="admin-item" key={skill.id}>
@@ -203,7 +761,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
       </section>
 
-      <section className="admin-edit-section">
+      <section
+        className="admin-edit-section"
+        data-admin-section="career"
+        data-selected={selectedSection === "career" ? "true" : undefined}
+      >
         <div className="admin-section-heading">
           <div>
             <span>03</span>
@@ -232,6 +794,14 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             경력 추가
           </button>
         </div>
+        <SectionVisualControls
+          disabled={uploadingSection === "career"}
+          onChange={(visualPatch) => updateSectionVisual("career", visualPatch)}
+          onRemoveImage={() => removeSectionImage("career")}
+          onUploadImage={(file) => void uploadSectionImage("career", file)}
+          sectionId="career"
+          visual={content.visuals.sections.career}
+        />
         <div className="admin-item-list">
           {content.careers.map((career, index) => (
             <fieldset className="admin-item" key={career.id}>
@@ -447,7 +1017,13 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
       </section>
 
-      <section className="admin-edit-section">
+      <section
+        className="admin-edit-section"
+        data-admin-section="side-projects"
+        data-selected={
+          selectedSection === "side-projects" ? "true" : undefined
+        }
+      >
         <div className="admin-section-heading">
           <div>
             <span>04</span>
@@ -477,6 +1053,18 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             프로젝트 추가
           </button>
         </div>
+        <SectionVisualControls
+          disabled={uploadingSection === "side-projects"}
+          onChange={(visualPatch) =>
+            updateSectionVisual("side-projects", visualPatch)
+          }
+          onRemoveImage={() => removeSectionImage("side-projects")}
+          onUploadImage={(file) =>
+            void uploadSectionImage("side-projects", file)
+          }
+          sectionId="side-projects"
+          visual={content.visuals.sections["side-projects"]}
+        />
         <div className="admin-item-list">
           {content.sideProjects.map((project, index) => (
             <fieldset className="admin-item" key={project.id}>
@@ -585,7 +1173,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
       </section>
 
-      <section className="admin-edit-section">
+      <section
+        className="admin-edit-section"
+        data-admin-section="contact"
+        data-selected={selectedSection === "contact" ? "true" : undefined}
+      >
         <div className="admin-section-heading">
           <div>
             <span>05</span>
@@ -614,6 +1206,14 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             연락처 추가
           </button>
         </div>
+        <SectionVisualControls
+          disabled={uploadingSection === "contact"}
+          onChange={(visualPatch) => updateSectionVisual("contact", visualPatch)}
+          onRemoveImage={() => removeSectionImage("contact")}
+          onUploadImage={(file) => void uploadSectionImage("contact", file)}
+          sectionId="contact"
+          visual={content.visuals.sections.contact}
+        />
         <div className="admin-item-list">
           {content.contacts.map((contact, index) => (
             <fieldset className="admin-item" key={contact.id}>
@@ -695,6 +1295,9 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
           ))}
         </div>
       </section>
+
+        </aside>
+      </div>
 
       <div className="admin-save-bar">
         {state.message ? (

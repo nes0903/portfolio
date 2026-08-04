@@ -1,17 +1,38 @@
 import { EmptyState } from "@/components/portfolio/EmptyState";
+import {
+  createEditableTextProps,
+  type PortfolioEditorBridge,
+} from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
-import type { CareerWithWorks } from "@/lib/content/types";
+import type {
+  CareerWithWorks,
+  PortfolioSectionVisual,
+} from "@/lib/content/types";
+import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
 
 interface CareerSectionProps {
   readonly careers: readonly CareerWithWorks[];
+  readonly editor?: PortfolioEditorBridge;
+  readonly visual?: PortfolioSectionVisual;
 }
 
 /**
  * 검증된 경력과 joined work를 native disclosure 목록으로 렌더링한다.
  */
-export function CareerSection({ careers }: CareerSectionProps) {
+export function CareerSection({
+  careers,
+  editor,
+  visual = DEFAULT_SECTION_VISUAL,
+}: CareerSectionProps) {
   return (
-    <PortfolioSection id="career" number="03" eyebrow="경력" title="경력">
+    <PortfolioSection
+      editor={editor}
+      id="career"
+      number="03"
+      eyebrow="경력"
+      title="경력"
+      visual={visual}
+    >
       {careers.length === 0 ? (
         <EmptyState>표시할 경력이 없습니다.</EmptyState>
       ) : (
@@ -20,9 +41,33 @@ export function CareerSection({ careers }: CareerSectionProps) {
             <article className="career" key={career.id}>
               <div className="career-top">
                 <div>
-                  <p className="eyebrow">{career.company}</p>
-                  <h3>{career.role}</h3>
-                  {career.summary ? <p>{career.summary}</p> : null}
+                  <p
+                    className="eyebrow"
+                    {...createEditableTextProps(
+                      editor,
+                      `careers:${career.id}:company`,
+                    )}
+                  >
+                    {career.company}
+                  </p>
+                  <h3
+                    {...createEditableTextProps(
+                      editor,
+                      `careers:${career.id}:role`,
+                    )}
+                  >
+                    {career.role}
+                  </h3>
+                  {career.summary ? (
+                    <p
+                      {...createEditableTextProps(
+                        editor,
+                        `careers:${career.id}:summary`,
+                      )}
+                    >
+                      {career.summary}
+                    </p>
+                  ) : null}
                 </div>
                 <p className="period">
                   {career.startDate} – {career.endDate ?? "현재"}
@@ -35,7 +80,14 @@ export function CareerSection({ careers }: CareerSectionProps) {
                 <div className="disclosures">
                   {career.works.map((work, index) => (
                     <details key={work.id} open={index === 0}>
-                      <summary>{work.title}</summary>
+                      <summary
+                        {...createEditableTextProps(
+                          editor,
+                          `careerWorks:${work.id}:title`,
+                        )}
+                      >
+                        {work.title}
+                      </summary>
                       <div className="evidence">
                         <section>
                           <h4>Context</h4>
@@ -49,7 +101,14 @@ export function CareerSection({ careers }: CareerSectionProps) {
                         </section>
                         <section>
                           <h4>Action</h4>
-                          <p>{work.description}</p>
+                          <p
+                            {...createEditableTextProps(
+                              editor,
+                              `careerWorks:${work.id}:description`,
+                            )}
+                          >
+                            {work.description}
+                          </p>
                         </section>
                         <section>
                           <h4>Verified Outcome</h4>

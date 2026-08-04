@@ -97,6 +97,101 @@ const httpsUrlSchema = z
     message: "Expected a public HTTPS URL without credentials",
   });
 
+export const DEFAULT_SECTION_VISUAL = {
+  accentColor: "#ff5b49",
+  backgroundColor: "#121216",
+  backgroundImage: null,
+  textColor: "#eeeae2",
+} as const;
+
+export const DEFAULT_PORTFOLIO_VISUALS = {
+  accentColor: "#ff5b49",
+  cardRadius: 22,
+  mutedTextColor: "#a8a6a0",
+  pageBackgroundColor: "#09090b",
+  sections: {
+    introduce: DEFAULT_SECTION_VISUAL,
+    skills: DEFAULT_SECTION_VISUAL,
+    career: DEFAULT_SECTION_VISUAL,
+    "side-projects": DEFAULT_SECTION_VISUAL,
+    contact: DEFAULT_SECTION_VISUAL,
+  },
+  textColor: "#eeeae2",
+} as const;
+
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9a-f]{6}$/i, "Expected a six-digit hexadecimal color");
+
+const portfolioAssetPathSchema = z.string().regex(
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/[0-9a-f-]+\.(?:avif|jpe?g|png|webp)$/i,
+  "Expected an owner-scoped portfolio asset path",
+);
+
+export const portfolioBackgroundImageSchema = z
+  .object({
+    alt: nonBlankStringSchema.max(160),
+    overlayOpacity: z.number().min(0).max(0.95).default(0.42),
+    path: portfolioAssetPathSchema,
+    positionX: z.number().int().min(0).max(100).default(50),
+    positionY: z.number().int().min(0).max(100).default(50),
+    url: httpsUrlSchema,
+  })
+  .strict();
+
+export const portfolioSectionVisualSchema = z
+  .object({
+    accentColor: hexColorSchema.default(DEFAULT_SECTION_VISUAL.accentColor),
+    backgroundColor: hexColorSchema.default(
+      DEFAULT_SECTION_VISUAL.backgroundColor,
+    ),
+    backgroundImage: portfolioBackgroundImageSchema
+      .nullable()
+      .default(DEFAULT_SECTION_VISUAL.backgroundImage),
+    textColor: hexColorSchema.default(DEFAULT_SECTION_VISUAL.textColor),
+  })
+  .strict();
+
+const defaultSectionVisuals = {
+  introduce: DEFAULT_SECTION_VISUAL,
+  skills: DEFAULT_SECTION_VISUAL,
+  career: DEFAULT_SECTION_VISUAL,
+  "side-projects": DEFAULT_SECTION_VISUAL,
+  contact: DEFAULT_SECTION_VISUAL,
+};
+
+export const portfolioVisualsSchema = z
+  .object({
+    accentColor: hexColorSchema.default(DEFAULT_PORTFOLIO_VISUALS.accentColor),
+    cardRadius: z
+      .number()
+      .int()
+      .min(8)
+      .max(40)
+      .default(DEFAULT_PORTFOLIO_VISUALS.cardRadius),
+    mutedTextColor: hexColorSchema.default(
+      DEFAULT_PORTFOLIO_VISUALS.mutedTextColor,
+    ),
+    pageBackgroundColor: hexColorSchema.default(
+      DEFAULT_PORTFOLIO_VISUALS.pageBackgroundColor,
+    ),
+    sections: z
+      .object({
+        introduce: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
+        skills: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
+        career: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
+        "side-projects": portfolioSectionVisualSchema.default(
+          DEFAULT_SECTION_VISUAL,
+        ),
+        contact: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
+      })
+      .strict()
+      .default(defaultSectionVisuals),
+    textColor: hexColorSchema.default(DEFAULT_PORTFOLIO_VISUALS.textColor),
+  })
+  .strict()
+  .default(DEFAULT_PORTFOLIO_VISUALS);
+
 /**
  * 연락 채널에서 재사용하는 유효한 이메일 주소 계약.
  */

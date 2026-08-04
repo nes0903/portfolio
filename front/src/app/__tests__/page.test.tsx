@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import HomePage from "@/app/page";
 import { loadPublishedPortfolioContent } from "@/lib/content/supabase-loader";
 import type { PortfolioContentViewModel } from "@/lib/content/types";
+import { DEFAULT_PORTFOLIO_VISUALS } from "@/lib/content/schema";
 
 vi.mock("@/lib/content/supabase-loader", () => ({
   loadPublishedPortfolioContent: vi.fn(),
@@ -71,6 +72,7 @@ const populatedContent = {
       order: 1,
     },
   ],
+  visuals: DEFAULT_PORTFOLIO_VISUALS,
 } satisfies PortfolioContentViewModel;
 
 const emptyCollectionsContent = {

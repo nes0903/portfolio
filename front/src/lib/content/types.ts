@@ -5,6 +5,9 @@ import type {
   careerWorkItemSchema,
   contactItemSchema,
   introduceSchema,
+  portfolioBackgroundImageSchema,
+  portfolioSectionVisualSchema,
+  portfolioVisualsSchema,
   sideProjectItemSchema,
   skillItemSchema,
 } from "@/lib/content/schema";
@@ -26,6 +29,13 @@ export type Career = DeepReadonly<z.infer<typeof careerItemSchema>>;
 export type CareerWork = DeepReadonly<z.infer<typeof careerWorkItemSchema>>;
 export type SideProject = DeepReadonly<z.infer<typeof sideProjectItemSchema>>;
 export type Contact = DeepReadonly<z.infer<typeof contactItemSchema>>;
+export type PortfolioBackgroundImage = DeepReadonly<
+  z.infer<typeof portfolioBackgroundImageSchema>
+>;
+export type PortfolioSectionVisual = DeepReadonly<
+  z.infer<typeof portfolioSectionVisualSchema>
+>;
+export type PortfolioVisuals = DeepReadonly<z.infer<typeof portfolioVisualsSchema>>;
 
 /**
  * 한 경력에 해당하는 상세 작업을 결합한 뷰 모델.
@@ -43,4 +53,5 @@ export interface PortfolioContentViewModel {
   readonly careers: readonly CareerWithWorks[];
   readonly sideProjects: readonly SideProject[];
   readonly contacts: readonly Contact[];
+  readonly visuals: PortfolioVisuals;
 }
