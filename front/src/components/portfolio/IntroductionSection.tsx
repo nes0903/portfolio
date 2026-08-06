@@ -1,40 +1,17 @@
-import { Fragment } from "react";
-
 import { EmptyState } from "@/components/portfolio/EmptyState";
-import {
-  createEditableTextProps,
-  type PortfolioEditorBridge,
-} from "@/components/portfolio/editor-types";
+import type { PortfolioEditorBridge } from "@/components/portfolio/editor-types";
+import { IntroductionTextCanvas } from "@/components/portfolio/IntroductionTextCanvas";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
-import type { Introduce, PortfolioSectionVisual } from "@/lib/content/types";
-import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
+import { DEFAULT_INTRODUCTION_VISUAL } from "@/lib/content/schema";
+import type {
+  Introduce,
+  PortfolioIntroductionVisual,
+} from "@/lib/content/types";
 
 interface IntroductionSectionProps {
   readonly editor?: PortfolioEditorBridge;
   readonly introduce: Introduce;
-  readonly visual?: PortfolioSectionVisual;
-}
-
-interface ParagraphLinesProps {
-  readonly paragraph: string;
-}
-
-/**
- * 한 semantic paragraph 안의 단일 줄바꿈을 명시적인 line break로 보존한다.
- */
-function ParagraphLines({ paragraph }: ParagraphLinesProps) {
-  const lines = paragraph.split(/\r?\n/);
-
-  return lines.map((line, index) => (
-    <Fragment key={index}>
-      {line}
-      {index < lines.length - 1 ? (
-        <>
-          <br />{" "}
-        </>
-      ) : null}
-    </Fragment>
-  ));
+  readonly visual?: PortfolioIntroductionVisual;
 }
 
 /**
@@ -43,36 +20,23 @@ function ParagraphLines({ paragraph }: ParagraphLinesProps) {
 export function IntroductionSection({
   editor,
   introduce,
-  visual = DEFAULT_SECTION_VISUAL,
+  visual = DEFAULT_INTRODUCTION_VISUAL,
 }: IntroductionSectionProps) {
-  const paragraphs = introduce.content
-    .split(/\r?\n\s*\r?\n/)
-    .filter((paragraph) => paragraph.trim().length > 0);
-
   return (
     <PortfolioSection
       id="introduce"
       number="01"
       eyebrow="소개"
       title={introduce.title}
-      titleField="introduce.title"
       editor={editor}
+      renderTitle={false}
       visual={visual}
     >
-      {editor ? (
-        <p
-          className="lead visual-inline-multiline"
-          {...createEditableTextProps(editor, "introduce.content")}
-        >
-          {introduce.content}
-        </p>
-      ) : (
-        paragraphs.map((paragraph, index) => (
-          <p className="lead" key={index}>
-            <ParagraphLines paragraph={paragraph} />
-          </p>
-        ))
-      )}
+      <IntroductionTextCanvas
+        blocks={visual.textBlocks}
+        editor={editor}
+        introduce={introduce}
+      />
       <div className="actions">
         <a className="btn" href="#career">
           경력 근거 보기

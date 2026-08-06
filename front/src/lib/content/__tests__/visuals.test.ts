@@ -52,6 +52,85 @@ describe("portfolio visual schema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("소개 제목·내용·추가 텍스트의 캔버스 배치를 검증한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      visuals: {
+        ...DEFAULT_PORTFOLIO_VISUALS,
+        sections: {
+          ...DEFAULT_PORTFOLIO_VISUALS.sections,
+          introduce: {
+            ...DEFAULT_PORTFOLIO_VISUALS.sections.introduce,
+            textBlocks: [
+              ...DEFAULT_PORTFOLIO_VISUALS.sections.introduce.textBlocks,
+              {
+                fontSize: 28,
+                height: 12,
+                id: "intro-text-valid",
+                kind: "custom",
+                text: "추가 소개 문구",
+                textAlign: "center",
+                width: 32,
+                x: 60,
+                y: 78,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("소개 텍스트 박스의 세로 영역은 기존 캔버스 높이보다 길어질 수 있다", () => {
+    const content = createDocumentWithoutVisuals();
+    const blocks = DEFAULT_PORTFOLIO_VISUALS.sections.introduce.textBlocks;
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      visuals: {
+        ...DEFAULT_PORTFOLIO_VISUALS,
+        sections: {
+          ...DEFAULT_PORTFOLIO_VISUALS.sections,
+          introduce: {
+            ...DEFAULT_PORTFOLIO_VISUALS.sections.introduce,
+            textBlocks: blocks.map((block) =>
+              block.kind === "body"
+                ? { ...block, height: 80, y: 240 }
+                : block,
+            ),
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("가로 캔버스 밖으로 나가는 텍스트 박스와 필수 블록 중복을 거부한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const title = DEFAULT_PORTFOLIO_VISUALS.sections.introduce.textBlocks[0];
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      visuals: {
+        ...DEFAULT_PORTFOLIO_VISUALS,
+        sections: {
+          ...DEFAULT_PORTFOLIO_VISUALS.sections,
+          introduce: {
+            ...DEFAULT_PORTFOLIO_VISUALS.sections.introduce,
+            textBlocks: [
+              ...DEFAULT_PORTFOLIO_VISUALS.sections.introduce.textBlocks,
+              { ...title, id: "intro-title-duplicate", width: 50, x: 70 },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("임의 CSS 색상과 버킷 범위를 벗어난 이미지 경로를 거부한다", () => {
     const content = createDocumentWithoutVisuals();
     const result = portfolioDocumentContentSchema.safeParse({

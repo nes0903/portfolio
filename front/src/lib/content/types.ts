@@ -5,6 +5,8 @@ import type {
   careerWorkItemSchema,
   contactItemSchema,
   introduceSchema,
+  introductionSectionVisualSchema,
+  introductionTextBlockSchema,
   portfolioBackgroundImageSchema,
   portfolioSectionVisualSchema,
   portfolioVisualsSchema,
@@ -31,6 +33,12 @@ export type SideProject = DeepReadonly<z.infer<typeof sideProjectItemSchema>>;
 export type Contact = DeepReadonly<z.infer<typeof contactItemSchema>>;
 export type PortfolioBackgroundImage = DeepReadonly<
   z.infer<typeof portfolioBackgroundImageSchema>
+>;
+export type IntroductionTextBlock = DeepReadonly<
+  z.infer<typeof introductionTextBlockSchema>
+>;
+export type PortfolioIntroductionVisual = DeepReadonly<
+  z.infer<typeof introductionSectionVisualSchema>
 >;
 export type PortfolioSectionVisual = DeepReadonly<
   z.infer<typeof portfolioSectionVisualSchema>

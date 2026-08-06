@@ -9,8 +9,14 @@ import {
   type PortfolioSectionId,
 } from "@/components/layout/navigation";
 import { PortfolioExperience } from "@/components/portfolio/PortfolioExperience";
+import type { IntroductionTextBlockLayoutPatch } from "@/components/portfolio/editor-types";
 import { initialAdminFormState } from "@/lib/auth/form-state";
 import { normalizePortfolioContentForSave } from "@/lib/content/admin-form";
+import {
+  INTRODUCTION_MAX_VERTICAL_UNITS,
+  INTRODUCTION_MIN_HEIGHT_UNITS,
+  INTRODUCTION_VERTICAL_UNIT_PX,
+} from "@/lib/content/introduction-layout";
 import {
   createPortfolioContentViewModel,
   type PortfolioDocumentContent,
@@ -19,6 +25,94 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 interface PortfolioEditorProps {
   readonly initialContent: PortfolioDocumentContent;
+}
+
+interface PreviewTextBlockRectangle {
+  readonly height: number;
+  readonly width: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+function getPreviewOverlapArea(
+  rectangle: PreviewTextBlockRectangle,
+  obstacles: readonly PreviewTextBlockRectangle[],
+): number {
+  return obstacles.reduce((total, obstacle) => {
+    const overlapWidth = Math.max(
+      0,
+      Math.min(rectangle.x + rectangle.width, obstacle.x + obstacle.width) -
+        Math.max(rectangle.x, obstacle.x),
+    );
+    const overlapHeight = Math.max(
+      0,
+      Math.min(rectangle.y + rectangle.height, obstacle.y + obstacle.height) -
+        Math.max(rectangle.y, obstacle.y),
+    );
+
+    return total + overlapWidth * overlapHeight;
+  }, 0);
+}
+
+function blocksLayoutChangeThatIncreasesOverlap(
+  blockId: string,
+  patch: IntroductionTextBlockLayoutPatch,
+): boolean {
+  if (
+    patch.x === undefined &&
+    patch.y === undefined &&
+    patch.width === undefined &&
+    patch.height === undefined
+  ) {
+    return false;
+  }
+
+  const canvas = document.querySelector<HTMLElement>(
+    '.visual-preview-viewport [data-editor-canvas="true"]',
+  );
+  if (!canvas) return false;
+
+  const canvasRect = canvas.getBoundingClientRect();
+  if (canvasRect.width <= 0 || canvasRect.height <= 0) return false;
+
+  const elements = Array.from(
+    canvas.querySelectorAll<HTMLElement>("[data-text-block-id]"),
+  );
+  const activeElement = elements.find(
+    (element) => element.dataset.textBlockId === blockId,
+  );
+  if (!activeElement) return false;
+
+  function toCanvasRectangle(element: HTMLElement): PreviewTextBlockRectangle {
+    const rectangle = element.getBoundingClientRect();
+    return {
+      height: rectangle.height / INTRODUCTION_VERTICAL_UNIT_PX,
+      width: (rectangle.width / canvasRect.width) * 100,
+      x: ((rectangle.left - canvasRect.left) / canvasRect.width) * 100,
+      y:
+        (rectangle.top - canvasRect.top) /
+        INTRODUCTION_VERTICAL_UNIT_PX,
+    };
+  }
+
+  const currentRectangle = toCanvasRectangle(activeElement);
+  const nextRectangle = {
+    height:
+      patch.height === undefined
+        ? currentRectangle.height
+        : Math.max(currentRectangle.height, patch.height),
+    width: patch.width ?? currentRectangle.width,
+    x: patch.x ?? currentRectangle.x,
+    y: patch.y ?? currentRectangle.y,
+  };
+  const obstacles = elements
+    .filter((element) => element !== activeElement)
+    .map(toCanvasRectangle);
+
+  return (
+    getPreviewOverlapArea(nextRectangle, obstacles) >
+    getPreviewOverlapArea(currentRectangle, obstacles) + 0.01
+  );
 }
 
 interface FieldProps {
@@ -257,10 +351,233 @@ function SectionVisualControls({
   );
 }
 
+type IntroductionTextBlock = PortfolioDocumentContent["visuals"]["sections"]["introduce"]["textBlocks"][number];
+
+interface IntroductionTextBlockControlsProps {
+  readonly blocks: readonly IntroductionTextBlock[];
+  readonly onAdd: () => void;
+  readonly onChange: (
+    blockId: string,
+    patch: IntroductionTextBlockLayoutPatch,
+  ) => void;
+  readonly onRemove: (blockId: string) => void;
+  readonly onSelect: (blockId: string) => void;
+  readonly onTextChange: (blockId: string, text: string) => void;
+  readonly selectedBlockId: string | null;
+}
+
+function getIntroductionTextBlockLabel(
+  block: IntroductionTextBlock,
+  customIndex: number,
+): string {
+  if (block.kind === "title") return "제목";
+  if (block.kind === "body") return "소개 내용";
+  return `추가 텍스트 ${customIndex + 1}`;
+}
+
+function IntroductionTextBlockControls({
+  blocks,
+  onAdd,
+  onChange,
+  onRemove,
+  onSelect,
+  onTextChange,
+  selectedBlockId,
+}: IntroductionTextBlockControlsProps) {
+  const selectedBlock =
+    blocks.find((block) => block.id === selectedBlockId) ?? blocks[0];
+  let customIndex = 0;
+
+  return (
+    <div className="admin-text-block-controls">
+      <div className="admin-subsection-heading">
+        <div>
+          <strong>텍스트 박스 배치</strong>
+          <p>
+            미리보기 박스의 위쪽 변으로 이동하고 왼쪽·오른쪽·아래쪽 변으로
+            크기를 조절합니다. 다른 텍스트 박스와 겹치는 이동은 제한됩니다.
+            높이를 내용보다 작게 줄이면 글자가 잘리지 않도록 박스가 자동으로
+            늘어납니다. 세로 영역에도 끝이 없으며, 길어진 내용은 카드 내부
+            스크롤로 확인합니다. 모바일에서는 가독성을 위해 자동 세로
+            정렬됩니다.
+          </p>
+        </div>
+        <button
+          className="admin-button"
+          disabled={blocks.length >= 12}
+          onClick={onAdd}
+          type="button"
+        >
+          텍스트 박스 추가
+        </button>
+      </div>
+
+      <div className="admin-text-block-tabs" aria-label="소개 텍스트 박스">
+        {blocks.map((block) => {
+          const index = block.kind === "custom" ? customIndex++ : 0;
+          return (
+            <button
+              aria-pressed={selectedBlock?.id === block.id}
+              className="admin-button"
+              key={block.id}
+              onClick={() => onSelect(block.id)}
+              type="button"
+            >
+              {getIntroductionTextBlockLabel(block, index)}
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedBlock ? (
+        <div className="admin-text-block-detail">
+          {selectedBlock.kind === "custom" ? (
+            <TextAreaField
+              label="추가 텍스트"
+              onChange={(text) => onTextChange(selectedBlock.id, text)}
+              rows={3}
+              value={selectedBlock.text}
+            />
+          ) : null}
+
+          <div className="admin-field-grid">
+            <label className="admin-field">
+              <span>가로 위치 {Math.round(selectedBlock.x)}%</span>
+              <input
+                max={100 - selectedBlock.width}
+                min="0"
+                onChange={(event) =>
+                  onChange(selectedBlock.id, { x: Number(event.target.value) })
+                }
+                step="0.5"
+                type="range"
+                value={selectedBlock.x}
+              />
+            </label>
+            <label className="admin-field">
+              <span>
+                세로 위치 {Math.round(
+                  selectedBlock.y * INTRODUCTION_VERTICAL_UNIT_PX,
+                )}
+                px
+              </span>
+              <input
+                max={
+                  INTRODUCTION_MAX_VERTICAL_UNITS *
+                  INTRODUCTION_VERTICAL_UNIT_PX
+                }
+                min="0"
+                onChange={(event) =>
+                  onChange(selectedBlock.id, {
+                    y:
+                      Number(event.target.value) /
+                      INTRODUCTION_VERTICAL_UNIT_PX,
+                  })
+                }
+                step={INTRODUCTION_VERTICAL_UNIT_PX}
+                type="number"
+                value={
+                  selectedBlock.y * INTRODUCTION_VERTICAL_UNIT_PX
+                }
+              />
+            </label>
+            <label className="admin-field">
+              <span>박스 너비 {Math.round(selectedBlock.width)}%</span>
+              <input
+                max={100 - selectedBlock.x}
+                min="10"
+                onChange={(event) =>
+                  onChange(selectedBlock.id, {
+                    width: Number(event.target.value),
+                  })
+                }
+                step="0.5"
+                type="range"
+                value={selectedBlock.width}
+              />
+            </label>
+            <label className="admin-field">
+              <span>
+                최소 높이 {Math.round(
+                  selectedBlock.height * INTRODUCTION_VERTICAL_UNIT_PX,
+                )}
+                px
+              </span>
+              <input
+                max={
+                  INTRODUCTION_MAX_VERTICAL_UNITS *
+                  INTRODUCTION_VERTICAL_UNIT_PX
+                }
+                min={
+                  INTRODUCTION_MIN_HEIGHT_UNITS *
+                  INTRODUCTION_VERTICAL_UNIT_PX
+                }
+                onChange={(event) =>
+                  onChange(selectedBlock.id, {
+                    height:
+                      Number(event.target.value) /
+                      INTRODUCTION_VERTICAL_UNIT_PX,
+                  })
+                }
+                step={INTRODUCTION_VERTICAL_UNIT_PX}
+                type="number"
+                value={
+                  selectedBlock.height * INTRODUCTION_VERTICAL_UNIT_PX
+                }
+              />
+            </label>
+            <label className="admin-field">
+              <span>글자 크기 {selectedBlock.fontSize}px</span>
+              <input
+                max="140"
+                min="12"
+                onChange={(event) =>
+                  onChange(selectedBlock.id, {
+                    fontSize: Number(event.target.value),
+                  })
+                }
+                type="range"
+                value={selectedBlock.fontSize}
+              />
+            </label>
+            <label className="admin-field">
+              <span>정렬</span>
+              <select
+                onChange={(event) =>
+                  onChange(selectedBlock.id, {
+                    textAlign: event.target.value as IntroductionTextBlock["textAlign"],
+                  })
+                }
+                value={selectedBlock.textAlign}
+              >
+                <option value="left">왼쪽</option>
+                <option value="center">가운데</option>
+                <option value="right">오른쪽</option>
+              </select>
+            </label>
+          </div>
+
+          {selectedBlock.kind === "custom" ? (
+            <button
+              className="admin-remove-button"
+              onClick={() => onRemove(selectedBlock.id)}
+              type="button"
+            >
+              이 텍스트 박스 삭제
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   const [content, setContent] = useState(initialContent);
   const [selectedSection, setSelectedSection] =
     useState<PortfolioSectionId>("introduce");
+  const [selectedIntroductionTextBlockId, setSelectedIntroductionTextBlockId] =
+    useState<string | null>("intro-title");
   const [assetMessage, setAssetMessage] = useState("");
   const [uploadingSection, setUploadingSection] =
     useState<PortfolioSectionId | null>(null);
@@ -305,6 +622,117 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         },
       },
     }));
+  }
+
+  function selectIntroductionTextBlock(blockId: string): void {
+    setSelectedSection("introduce");
+    setSelectedIntroductionTextBlockId(blockId);
+  }
+
+  function updateIntroductionTextBlock(
+    blockId: string,
+    patch: IntroductionTextBlockLayoutPatch,
+  ): void {
+    if (blocksLayoutChangeThatIncreasesOverlap(blockId, patch)) return;
+
+    setContent((current) => ({
+      ...current,
+      visuals: {
+        ...current.visuals,
+        sections: {
+          ...current.visuals.sections,
+          introduce: {
+            ...current.visuals.sections.introduce,
+            textBlocks: current.visuals.sections.introduce.textBlocks.map(
+              (block) =>
+                block.id === blockId ? { ...block, ...patch } : block,
+            ),
+          },
+        },
+      },
+    }));
+  }
+
+  function updateIntroductionCustomText(blockId: string, text: string): void {
+    setContent((current) => ({
+      ...current,
+      visuals: {
+        ...current.visuals,
+        sections: {
+          ...current.visuals.sections,
+          introduce: {
+            ...current.visuals.sections.introduce,
+            textBlocks: current.visuals.sections.introduce.textBlocks.map(
+              (block) =>
+                block.id === blockId && block.kind === "custom"
+                  ? { ...block, text }
+                  : block,
+            ),
+          },
+        },
+      },
+    }));
+  }
+
+  function addIntroductionTextBlock(): void {
+    const blocks = content.visuals.sections.introduce.textBlocks;
+    if (blocks.length >= 12) return;
+
+    const customCount = blocks.filter((block) => block.kind === "custom").length;
+    const id = createContentId("intro-text");
+    const block: IntroductionTextBlock = {
+      fontSize: 24,
+      height: 12,
+      id,
+      kind: "custom",
+      text: "새 텍스트",
+      textAlign: "left",
+      width: 36,
+      x: Math.min(8 + customCount * 4, 50),
+      y: Math.min(76 + customCount * 2, 84),
+    };
+
+    setContent((current) => ({
+      ...current,
+      visuals: {
+        ...current.visuals,
+        sections: {
+          ...current.visuals.sections,
+          introduce: {
+            ...current.visuals.sections.introduce,
+            textBlocks: [
+              ...current.visuals.sections.introduce.textBlocks,
+              block,
+            ],
+          },
+        },
+      },
+    }));
+    selectIntroductionTextBlock(id);
+  }
+
+  function removeIntroductionTextBlock(blockId: string): void {
+    const block = content.visuals.sections.introduce.textBlocks.find(
+      (candidate) => candidate.id === blockId,
+    );
+    if (!block || block.kind !== "custom") return;
+
+    setContent((current) => ({
+      ...current,
+      visuals: {
+        ...current.visuals,
+        sections: {
+          ...current.visuals.sections,
+          introduce: {
+            ...current.visuals.sections.introduce,
+            textBlocks: current.visuals.sections.introduce.textBlocks.filter(
+              (candidate) => candidate.id !== blockId,
+            ),
+          },
+        },
+      },
+    }));
+    setSelectedIntroductionTextBlockId("intro-title");
   }
 
   async function uploadSectionImage(
@@ -383,7 +811,8 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
 
   function commitInlineText(field: string, value: string): void {
     const normalizedValue =
-      field === "introduce.content"
+      field === "introduce.content" ||
+      field.startsWith("introductionTextBlocks:")
         ? value.trim()
         : value.replace(/\s+/g, " ").trim();
 
@@ -405,6 +834,14 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         ...current,
         introduce: { ...current.introduce, content: normalizedValue },
       }));
+      return;
+    }
+
+    if (field.startsWith("introductionTextBlocks:")) {
+      const [, blockId, key] = field.split(":");
+      if (blockId && key === "text") {
+        updateIntroductionCustomText(blockId, normalizedValue);
+      }
       return;
     }
 
@@ -546,8 +983,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             <PortfolioExperience
               content={previewContent}
               editor={{
+                onChangeIntroductionTextBlock: updateIntroductionTextBlock,
+                onSelectIntroductionTextBlock: selectIntroductionTextBlock,
                 onSelectSection: selectSection,
                 onTextCommit: commitInlineText,
+                selectedIntroductionTextBlockId,
                 selectedSection,
               }}
               showSkipLink={false}
@@ -649,6 +1089,15 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
           onUploadImage={(file) => void uploadSectionImage("introduce", file)}
           sectionId="introduce"
           visual={content.visuals.sections.introduce}
+        />
+        <IntroductionTextBlockControls
+          blocks={content.visuals.sections.introduce.textBlocks}
+          onAdd={addIntroductionTextBlock}
+          onChange={updateIntroductionTextBlock}
+          onRemove={removeIntroductionTextBlock}
+          onSelect={selectIntroductionTextBlock}
+          onTextChange={updateIntroductionCustomText}
+          selectedBlockId={selectedIntroductionTextBlockId}
         />
         <div className="admin-field-grid">
           <Field

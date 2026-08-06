@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  INTRODUCTION_MAX_VERTICAL_UNITS,
+  INTRODUCTION_MIN_HEIGHT_UNITS,
+} from "@/lib/content/introduction-layout";
+
 /**
  * 원문은 변형하지 않으면서 공백 문자만 있는 문자열을 거부한다.
  */
@@ -104,13 +109,41 @@ export const DEFAULT_SECTION_VISUAL = {
   textColor: "#eeeae2",
 } as const;
 
+export const DEFAULT_INTRODUCTION_TEXT_BLOCKS = [
+  {
+    fontSize: 94,
+    height: 50,
+    id: "intro-title",
+    kind: "title" as const,
+    textAlign: "left" as const,
+    width: 74,
+    x: 0,
+    y: 0,
+  },
+  {
+    fontSize: 19,
+    height: 18,
+    id: "intro-content",
+    kind: "body" as const,
+    textAlign: "left" as const,
+    width: 52,
+    x: 0,
+    y: 58,
+  },
+];
+
+export const DEFAULT_INTRODUCTION_VISUAL = {
+  ...DEFAULT_SECTION_VISUAL,
+  textBlocks: DEFAULT_INTRODUCTION_TEXT_BLOCKS,
+} as const;
+
 export const DEFAULT_PORTFOLIO_VISUALS = {
   accentColor: "#ff5b49",
   cardRadius: 22,
   mutedTextColor: "#a8a6a0",
   pageBackgroundColor: "#09090b",
   sections: {
-    introduce: DEFAULT_SECTION_VISUAL,
+    introduce: DEFAULT_INTRODUCTION_VISUAL,
     skills: DEFAULT_SECTION_VISUAL,
     career: DEFAULT_SECTION_VISUAL,
     "side-projects": DEFAULT_SECTION_VISUAL,
@@ -152,8 +185,96 @@ export const portfolioSectionVisualSchema = z
   })
   .strict();
 
+const introductionTextBlockLayoutSchema = {
+  fontSize: z.number().int().min(12).max(140),
+  height: z
+    .number()
+    .min(INTRODUCTION_MIN_HEIGHT_UNITS)
+    .max(INTRODUCTION_MAX_VERTICAL_UNITS),
+  id: z
+    .string()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9][a-z0-9-]*$/i, "Expected a safe text block id"),
+  textAlign: z.enum(["left", "center", "right"]),
+  width: z.number().min(10).max(100),
+  x: z.number().min(0).max(90),
+  y: z.number().min(0).max(INTRODUCTION_MAX_VERTICAL_UNITS),
+};
+
+export const introductionTextBlockSchema = z
+  .discriminatedUnion("kind", [
+    z
+      .object({
+        ...introductionTextBlockLayoutSchema,
+        kind: z.literal("title"),
+      })
+      .strict(),
+    z
+      .object({
+        ...introductionTextBlockLayoutSchema,
+        kind: z.literal("body"),
+      })
+      .strict(),
+    z
+      .object({
+        ...introductionTextBlockLayoutSchema,
+        kind: z.literal("custom"),
+        text: nonBlankStringSchema.max(1_000),
+      })
+      .strict(),
+  ])
+  .superRefine((block, context) => {
+    if (block.x + block.width > 100) {
+      context.addIssue({
+        code: "custom",
+        message: "Text block exceeds the horizontal canvas boundary",
+        path: ["width"],
+      });
+    }
+  });
+
+export const introductionTextBlocksSchema = z
+  .array(introductionTextBlockSchema)
+  .min(2)
+  .max(12)
+  .superRefine((blocks, context) => {
+    const ids = new Set<string>();
+    let titleCount = 0;
+    let bodyCount = 0;
+
+    blocks.forEach((block, index) => {
+      if (ids.has(block.id)) {
+        context.addIssue({
+          code: "custom",
+          message: "Text block ids must be unique",
+          path: [index, "id"],
+        });
+      }
+      ids.add(block.id);
+
+      if (block.kind === "title") titleCount += 1;
+      if (block.kind === "body") bodyCount += 1;
+    });
+
+    if (titleCount !== 1 || bodyCount !== 1) {
+      context.addIssue({
+        code: "custom",
+        message: "Exactly one title and body text block are required",
+      });
+    }
+  });
+
+export const introductionSectionVisualSchema = portfolioSectionVisualSchema
+  .extend({
+    textBlocks: introductionTextBlocksSchema.default(
+      DEFAULT_INTRODUCTION_TEXT_BLOCKS,
+    ),
+  })
+  .strict();
+
 const defaultSectionVisuals = {
-  introduce: DEFAULT_SECTION_VISUAL,
+  introduce: DEFAULT_INTRODUCTION_VISUAL,
   skills: DEFAULT_SECTION_VISUAL,
   career: DEFAULT_SECTION_VISUAL,
   "side-projects": DEFAULT_SECTION_VISUAL,
@@ -177,7 +298,9 @@ export const portfolioVisualsSchema = z
     ),
     sections: z
       .object({
-        introduce: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
+        introduce: introductionSectionVisualSchema.default(
+          DEFAULT_INTRODUCTION_VISUAL,
+        ),
         skills: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
         career: portfolioSectionVisualSchema.default(DEFAULT_SECTION_VISUAL),
         "side-projects": portfolioSectionVisualSchema.default(

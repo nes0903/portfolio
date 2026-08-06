@@ -37,6 +37,37 @@ function createContent() {
   });
 }
 
+function createContentWithCustomTextBlock() {
+  const content = createContent();
+
+  return {
+    ...content,
+    visuals: {
+      ...content.visuals,
+      sections: {
+        ...content.visuals.sections,
+        introduce: {
+          ...content.visuals.sections.introduce,
+          textBlocks: [
+            ...content.visuals.sections.introduce.textBlocks,
+            {
+              fontSize: 24,
+              height: 12,
+              id: "intro-text-test",
+              kind: "custom" as const,
+              text: "직접 수정할 추가 텍스트",
+              textAlign: "left" as const,
+              width: 36,
+              x: 60,
+              y: 78,
+            },
+          ],
+        },
+      },
+    },
+  };
+}
+
 afterEach(() => {
   cleanup();
   window.history.replaceState(null, "", "/");
@@ -62,8 +93,11 @@ describe("PortfolioExperience visual editor bridge", () => {
       <PortfolioExperience
         content={createContent()}
         editor={{
+          onChangeIntroductionTextBlock: vi.fn(),
+          onSelectIntroductionTextBlock: vi.fn(),
           onSelectSection: vi.fn(),
           onTextCommit,
+          selectedIntroductionTextBlockId: "intro-title",
           selectedSection: "introduce",
         }}
       />,
@@ -80,6 +114,33 @@ describe("PortfolioExperience visual editor bridge", () => {
     expect(onTextCommit).toHaveBeenCalledWith(
       "introduce.title",
       "화면에서 수정한 제목",
+    );
+  });
+
+  it("관리자 모드에서 추가한 텍스트 박스도 직접 수정한다", () => {
+    const onTextCommit = vi.fn();
+    render(
+      <PortfolioExperience
+        content={createContentWithCustomTextBlock()}
+        editor={{
+          onChangeIntroductionTextBlock: vi.fn(),
+          onSelectIntroductionTextBlock: vi.fn(),
+          onSelectSection: vi.fn(),
+          onTextCommit,
+          selectedIntroductionTextBlockId: "intro-text-test",
+          selectedSection: "introduce",
+        }}
+      />,
+    );
+    const customText = screen.getByText("직접 수정할 추가 텍스트");
+
+    expect(customText).toHaveAttribute("contenteditable", "true");
+    customText.textContent = "화면에서 수정한 추가 텍스트";
+    fireEvent.blur(customText);
+
+    expect(onTextCommit).toHaveBeenCalledWith(
+      "introductionTextBlocks:intro-text-test:text",
+      "화면에서 수정한 추가 텍스트",
     );
   });
 });

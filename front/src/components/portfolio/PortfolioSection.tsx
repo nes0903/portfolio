@@ -13,6 +13,7 @@ interface PortfolioSectionProps {
   readonly eyebrow: string;
   readonly id: PortfolioSectionId;
   readonly number: string;
+  readonly renderTitle?: boolean;
   readonly title: string;
   readonly titleField?: string;
   readonly visual: PortfolioSectionVisual;
@@ -42,6 +43,7 @@ export function PortfolioSection({
   eyebrow,
   id,
   number,
+  renderTitle = true,
   title,
   titleField,
   visual,
@@ -97,14 +99,16 @@ export function PortfolioSection({
           </span>
           <div>
             <p className="eyebrow">{eyebrow}</p>
-            <Heading
-              id={titleId}
-              {...(titleField
-                ? createEditableTextProps(editor, titleField)
-                : {})}
-            >
-              {title}
-            </Heading>
+            {renderTitle ? (
+              <Heading
+                id={titleId}
+                {...(titleField
+                  ? createEditableTextProps(editor, titleField)
+                  : {})}
+              >
+                {title}
+              </Heading>
+            ) : null}
           </div>
         </div>
       ) : (

@@ -69,10 +69,13 @@ export function PortfolioExperience({
 
     const card = target.closest<HTMLElement>("[data-carousel-card]");
     const navigationLink = target.closest<HTMLElement>("[data-nav]");
+    const introductionTextBlock = target.closest<HTMLElement>(
+      "[data-editor-block]",
+    );
     const sectionId = (card?.dataset.section ??
       navigationLink?.dataset.nav) as PortfolioSectionId | undefined;
 
-    if (sectionId) {
+    if (sectionId && !introductionTextBlock) {
       editor.onSelectSection(sectionId);
     }
 
