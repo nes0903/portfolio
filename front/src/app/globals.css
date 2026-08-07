@@ -994,23 +994,23 @@ details[open] summary::after {
   line-height: 1.6;
 }
 
-.career-evidence-list strong {
+.formatted-text strong {
   color: var(--paper);
   font-weight: 800;
 }
 
-.career-evidence-list em {
+.formatted-text em {
   color: var(--paper);
   font-style: italic;
 }
 
-.career-evidence-list u {
+.formatted-text u {
   text-decoration-color: var(--signal);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
 
-.career-evidence-list mark {
+.formatted-text mark {
   padding: 0.04em 0.18em;
   color: var(--paper);
   background: color-mix(in srgb, var(--signal) 30%, transparent);

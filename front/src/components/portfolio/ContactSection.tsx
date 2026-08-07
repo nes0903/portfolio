@@ -1,6 +1,10 @@
 import { CopyContactButton } from "@/components/portfolio/CopyContactButton";
 import { EmptyState } from "@/components/portfolio/EmptyState";
 import {
+  FormattedText,
+  stripInlineFormatting,
+} from "@/components/portfolio/FormattedText";
+import {
   createEditableTextProps,
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
@@ -45,6 +49,7 @@ export function ContactSection({
             {...createEditableTextProps(
               editor,
               `contacts:${emailContact.id}:value`,
+              { richText: false },
             )}
           >
             {emailContact.value}
@@ -54,9 +59,9 @@ export function ContactSection({
         )}
 
         {emailContact ? (
-          <CopyContactButton
-            sendHref={emailContact.url}
-            value={emailContact.value}
+            <CopyContactButton
+              sendHref={emailContact.url}
+              value={stripInlineFormatting(emailContact.value)}
           />
         ) : (
           <>
@@ -98,17 +103,18 @@ export function ContactSection({
                     `contacts:${contact.id}:label`,
                   )}
                 >
-                  {contact.label}
+                  <FormattedText text={contact.label} />
                 </strong>
                 <a
                   className="contact-value"
                   href={contact.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`${contact.label}: ${contact.value} (새 창)`}
+                  aria-label={`${stripInlineFormatting(contact.label)}: ${stripInlineFormatting(contact.value)} (새 창)`}
                   {...createEditableTextProps(
                     editor,
                     `contacts:${contact.id}:value`,
+                    { richText: false },
                   )}
                 >
                   {contact.value}

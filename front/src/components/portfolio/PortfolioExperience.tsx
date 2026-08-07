@@ -163,7 +163,10 @@ function serializeFormattedNode(node: ChildNode): string {
 
   if (node.tagName === "U") return `[u]${content}[/u]`;
   if (node.tagName === "MARK") return `[mark]${content}[/mark]`;
-  if (node.tagName === "BR") return " ";
+  if (node.tagName === "BR") return "\n";
+  if (node.tagName === "DIV" || node.tagName === "P") {
+    return `\n${content}`;
+  }
 
   return content;
 }
@@ -184,6 +187,13 @@ function serializeCareerAction(element: HTMLElement): string {
     .filter(Boolean)
     .map((item) => `- ${item}`)
     .join("\n");
+}
+
+function serializeInlineText(element: HTMLElement): string {
+  return [...element.childNodes]
+    .map(serializeFormattedNode)
+    .join("")
+    .trim();
 }
 
 export function PortfolioExperience({
@@ -214,17 +224,18 @@ export function PortfolioExperience({
       const startElement = asHTMLElement(range.startContainer);
       const endElement = asHTMLElement(range.endContainer);
       const root = startElement?.closest<HTMLElement>(
-        '[data-editor-rich-text="career-action"]',
+        "[data-editor-rich-text]",
       );
       const startItem = startElement?.closest("li");
       const endItem = endElement?.closest("li");
+      const requiresSameListItem =
+        root?.dataset.editorRichText === "career-action";
 
       if (
         !root ||
         !endElement ||
         !root.contains(endElement) ||
-        !startItem ||
-        startItem !== endItem
+        (requiresSameListItem && (!startItem || startItem !== endItem))
       ) {
         richTextRangeRef.current = null;
         richTextRootRef.current = null;
@@ -305,7 +316,9 @@ export function PortfolioExperience({
     const value =
       target.dataset.editorRichText === "career-action"
         ? serializeCareerAction(target)
-        : (target.innerText ?? target.textContent ?? "").trim();
+        : target.dataset.editorRichText === "inline"
+          ? serializeInlineText(target)
+          : (target.innerText ?? target.textContent ?? "").trim();
 
     editor.onTextCommit(field, value);
   }
@@ -380,7 +393,7 @@ export function PortfolioExperience({
       {editor && richTextToolbar
         ? createPortal(
             <div
-              aria-label="선택한 Action 텍스트 서식"
+              aria-label="선택한 텍스트 서식"
               className="preview-rich-text-toolbar"
               onMouseDown={(event) => event.preventDefault()}
               role="toolbar"

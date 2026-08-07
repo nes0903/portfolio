@@ -1,5 +1,9 @@
 import { EmptyState } from "@/components/portfolio/EmptyState";
 import {
+  FormattedText,
+  stripInlineFormatting,
+} from "@/components/portfolio/FormattedText";
+import {
   createEditableTextProps,
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
@@ -48,7 +52,7 @@ export function SideProjectsSection({
                     `sideProjects:${project.id}:role`,
                   )}
                 >
-                  {project.role}
+                  <FormattedText text={project.role} />
                 </p>
                 <h3
                   {...createEditableTextProps(
@@ -56,7 +60,7 @@ export function SideProjectsSection({
                     `sideProjects:${project.id}:name`,
                   )}
                 >
-                  {project.name}
+                  <FormattedText text={project.name} />
                 </h3>
                 <p
                   {...createEditableTextProps(
@@ -64,12 +68,22 @@ export function SideProjectsSection({
                     `sideProjects:${project.id}:description`,
                   )}
                 >
-                  {project.description}
+                  <FormattedText text={project.description} />
                 </p>
-                <ul className="chips" aria-label={`${project.name} 기술`}>
-                  {project.skills.map((skill) => (
-                    <li className="chip" key={skill}>
-                      {skill}
+                <ul
+                  className="chips"
+                  aria-label={`${stripInlineFormatting(project.name)} 기술`}
+                >
+                  {project.skills.map((skill, skillIndex) => (
+                    <li
+                      className="chip"
+                      key={`${skill}-${skillIndex}`}
+                      {...createEditableTextProps(
+                        editor,
+                        `sideProjectSkills:${project.id}:${skillIndex}`,
+                      )}
+                    >
+                      <FormattedText text={skill} />
                     </li>
                   ))}
                 </ul>
@@ -85,7 +99,7 @@ export function SideProjectsSection({
                             href={project.links.repository}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={`${project.name} Repository (새 창)`}
+                            aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
                           >
                             Repository
                           </a>
@@ -96,7 +110,7 @@ export function SideProjectsSection({
                             href={project.links.demo}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={`${project.name} Demo (새 창)`}
+                            aria-label={`${stripInlineFormatting(project.name)} Demo (새 창)`}
                           >
                             Demo
                           </a>

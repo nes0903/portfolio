@@ -20,17 +20,26 @@ export interface PortfolioEditorBridge {
   readonly selectedSection: PortfolioSectionId;
 }
 
+interface EditableTextOptions {
+  readonly richText?: false | "career-action" | "inline";
+}
+
 export function createEditableTextProps(
   editor: PortfolioEditorBridge | undefined,
   field: string,
+  options: EditableTextOptions = {},
 ) {
   if (!editor) {
     return {};
   }
 
+  const richText =
+    options.richText === false ? undefined : (options.richText ?? "inline");
+
   return {
     contentEditable: true,
     "data-editor-field": field,
+    "data-editor-rich-text": richText,
     suppressContentEditableWarning: true,
   } as const;
 }

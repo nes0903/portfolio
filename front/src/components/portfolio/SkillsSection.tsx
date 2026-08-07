@@ -1,5 +1,9 @@
 import { EmptyState } from "@/components/portfolio/EmptyState";
 import {
+  FormattedText,
+  stripInlineFormatting,
+} from "@/components/portfolio/FormattedText";
+import {
   createEditableTextProps,
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
@@ -83,9 +87,12 @@ export function SkillsContent({
                     `skill-category:${group.skills.map(({ id }) => id).join(",")}`,
                   )}
                 >
-                  {group.category}
+                  <FormattedText text={group.category} />
                 </h3>
-                <ul className="chips" aria-label={`${group.category} 기술`}>
+                <ul
+                  className="chips"
+                  aria-label={`${stripInlineFormatting(group.category)} 기술`}
+                >
                   {group.skills.map((skill) => (
                     <li
                       className="chip"
@@ -95,7 +102,7 @@ export function SkillsContent({
                         `skills:${skill.id}:name`,
                       )}
                     >
-                      {skill.name}
+                      <FormattedText text={skill.name} />
                     </li>
                   ))}
                 </ul>

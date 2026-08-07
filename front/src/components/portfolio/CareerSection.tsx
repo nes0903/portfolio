@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
-
 import { EmptyState } from "@/components/portfolio/EmptyState";
+import {
+  FormattedText,
+  stripInlineFormatting,
+} from "@/components/portfolio/FormattedText";
 import {
   createEditableTextProps,
   type PortfolioEditorBridge,
@@ -24,67 +26,6 @@ function getActionItems(description: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim().replace(/^[-•]\s*/, ""))
     .filter(Boolean);
-}
-
-interface InlineFormatMatch {
-  readonly close: string;
-  readonly index: number;
-  readonly open: string;
-  readonly type: "bold" | "highlight" | "italic" | "underline";
-}
-
-const INLINE_FORMATS: readonly Omit<InlineFormatMatch, "index">[] = [
-  { close: "[/b]", open: "[b]", type: "bold" },
-  { close: "[/i]", open: "[i]", type: "italic" },
-  { close: "[/u]", open: "[u]", type: "underline" },
-  { close: "[/mark]", open: "[mark]", type: "highlight" },
-];
-
-function findInlineFormat(text: string): InlineFormatMatch | undefined {
-  let closest: InlineFormatMatch | undefined;
-
-  for (const format of INLINE_FORMATS) {
-    const index = text.indexOf(format.open);
-
-    if (index >= 0 && (!closest || index < closest.index)) {
-      closest = { ...format, index };
-    }
-  }
-
-  return closest;
-}
-
-function renderInlineFormatting(text: string, keyPrefix: string): ReactNode[] {
-  const format = findInlineFormat(text);
-
-  if (!format) return text ? [text] : [];
-
-  const contentStart = format.index + format.open.length;
-  const closeIndex = text.indexOf(format.close, contentStart);
-
-  if (closeIndex < 0) return [text];
-
-  const before = text.slice(0, format.index);
-  const content = renderInlineFormatting(
-    text.slice(contentStart, closeIndex),
-    `${keyPrefix}-content`,
-  );
-  const after = renderInlineFormatting(
-    text.slice(closeIndex + format.close.length),
-    `${keyPrefix}-after`,
-  );
-  const formatted =
-    format.type === "bold" ? (
-      <strong key={`${keyPrefix}-bold`}>{content}</strong>
-    ) : format.type === "italic" ? (
-      <em key={`${keyPrefix}-italic`}>{content}</em>
-    ) : format.type === "underline" ? (
-      <u key={`${keyPrefix}-underline`}>{content}</u>
-    ) : (
-      <mark key={`${keyPrefix}-highlight`}>{content}</mark>
-    );
-
-  return before ? [before, formatted, ...after] : [formatted, ...after];
 }
 
 /**
@@ -119,7 +60,7 @@ export function CareerSection({
                       `careers:${career.id}:company`,
                     )}
                   >
-                    {career.company}
+                    <FormattedText text={career.company} />
                   </p>
                   <h3
                     {...createEditableTextProps(
@@ -127,7 +68,7 @@ export function CareerSection({
                       `careers:${career.id}:role`,
                     )}
                   >
-                    {career.role}
+                    <FormattedText text={career.role} />
                   </h3>
                   {career.summary ? (
                     <p
@@ -136,7 +77,7 @@ export function CareerSection({
                         `careers:${career.id}:summary`,
                       )}
                     >
-                      {career.summary}
+                      <FormattedText text={career.summary} />
                     </p>
                   ) : null}
                 </div>
@@ -157,7 +98,7 @@ export function CareerSection({
                           `careerWorks:${work.id}:title`,
                         )}
                       >
-                        {work.title}
+                        <FormattedText text={work.title} />
                       </summary>
                       <div className="evidence">
                         <section>
@@ -165,11 +106,18 @@ export function CareerSection({
                           {work.technologies && work.technologies.length > 0 ? (
                             <ul
                               className="chips"
-                              aria-label={`${work.title} 기술`}
+                              aria-label={`${stripInlineFormatting(work.title)} 기술`}
                             >
-                              {work.technologies.map((technology) => (
-                                <li className="chip" key={technology}>
-                                  {technology}
+                              {work.technologies.map((technology, techIndex) => (
+                                <li
+                                  className="chip"
+                                  key={`${technology}-${techIndex}`}
+                                  {...createEditableTextProps(
+                                    editor,
+                                    `careerWorkTechnologies:${work.id}:${techIndex}`,
+                                  )}
+                                >
+                                  <FormattedText text={technology} />
                                 </li>
                               ))}
                             </ul>
@@ -182,23 +130,18 @@ export function CareerSection({
                         <section>
                           <h4>Action</h4>
                           <ul
-                            aria-label={`${work.title} 작업 내용`}
+                            aria-label={`${stripInlineFormatting(work.title)} 작업 내용`}
                             className="career-evidence-list"
-                            data-editor-rich-text={
-                              editor ? "career-action" : undefined
-                            }
                             {...createEditableTextProps(
                               editor,
                               `careerWorks:${work.id}:description`,
+                              { richText: "career-action" },
                             )}
                           >
                             {getActionItems(work.description).map(
                               (action, actionIndex) => (
                                 <li key={`${action}-${actionIndex}`}>
-                                  {renderInlineFormatting(
-                                    action,
-                                    `${work.id}-action-${actionIndex}`,
-                                  )}
+                                  <FormattedText text={action} />
                                 </li>
                               ),
                             )}
@@ -208,12 +151,22 @@ export function CareerSection({
                           <h4>Outcome</h4>
                           {work.achievements && work.achievements.length > 0 ? (
                             <ul
-                              aria-label={`${work.title} 성과`}
+                              aria-label={`${stripInlineFormatting(work.title)} 성과`}
                               className="career-evidence-list"
                             >
-                              {work.achievements.map((achievement) => (
-                                <li key={achievement}>{achievement}</li>
-                              ))}
+                              {work.achievements.map(
+                                (achievement, achievementIndex) => (
+                                  <li
+                                    key={`${achievement}-${achievementIndex}`}
+                                    {...createEditableTextProps(
+                                      editor,
+                                      `careerWorkAchievements:${work.id}:${achievementIndex}`,
+                                    )}
+                                  >
+                                    <FormattedText text={achievement} />
+                                  </li>
+                                ),
+                              )}
                             </ul>
                           ) : (
                             <p className="optional">
@@ -225,7 +178,7 @@ export function CareerSection({
                       {work.images && work.images.length > 0 ? (
                         <CareerWorkImages
                           images={work.images}
-                          title={work.title}
+                          title={stripInlineFormatting(work.title)}
                         />
                       ) : null}
                     </details>

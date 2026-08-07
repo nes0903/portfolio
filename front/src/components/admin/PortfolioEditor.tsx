@@ -1052,6 +1052,44 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         };
       }
 
+      if (collection === "careerWorkTechnologies") {
+        const itemIndex = Number(key);
+        if (!Number.isInteger(itemIndex)) return current;
+
+        return {
+          ...current,
+          careerWorks: current.careerWorks.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  technologies: item.technologies?.map((technology, index) =>
+                    index === itemIndex ? normalizedValue : technology,
+                  ),
+                }
+              : item,
+          ),
+        };
+      }
+
+      if (collection === "careerWorkAchievements") {
+        const itemIndex = Number(key);
+        if (!Number.isInteger(itemIndex)) return current;
+
+        return {
+          ...current,
+          careerWorks: current.careerWorks.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  achievements: item.achievements?.map((achievement, index) =>
+                    index === itemIndex ? normalizedValue : achievement,
+                  ),
+                }
+              : item,
+          ),
+        };
+      }
+
       if (collection === "sideProjects") {
         return {
           ...current,
@@ -1064,6 +1102,25 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             }
             return item;
           }),
+        };
+      }
+
+      if (collection === "sideProjectSkills") {
+        const itemIndex = Number(key);
+        if (!Number.isInteger(itemIndex)) return current;
+
+        return {
+          ...current,
+          sideProjects: current.sideProjects.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  skills: item.skills.map((skill, index) =>
+                    index === itemIndex ? normalizedValue : skill,
+                  ),
+                }
+              : item,
+          ),
         };
       }
 

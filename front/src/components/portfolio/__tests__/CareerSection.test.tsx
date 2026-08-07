@@ -169,7 +169,7 @@ describe("CareerSection", () => {
 
     for (const career of careers) {
       for (const work of career.works) {
-        const summary = screen.getByText(work.title, { selector: "summary" });
+        const summary = screen.getByText(work.title);
         const details = summary.closest("details");
         if (!details) throw new Error(`${work.title} details가 필요합니다`);
         const evidenceSections = [

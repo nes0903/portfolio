@@ -5,6 +5,7 @@ import {
   createEditableTextProps,
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
+import { FormattedText } from "@/components/portfolio/FormattedText";
 import type { PortfolioSectionVisual } from "@/lib/content/types";
 
 interface PortfolioSectionProps {
@@ -105,7 +106,7 @@ export function PortfolioSection({
                   ? createEditableTextProps(editor, titleField)
                   : {})}
               >
-                {title}
+                <FormattedText text={title} />
               </Heading>
             ) : null}
           </div>

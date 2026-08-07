@@ -11,6 +11,7 @@ import {
   createEditableTextProps,
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
+import { FormattedText } from "@/components/portfolio/FormattedText";
 import {
   getIntroductionCanvasMinimumHeight,
   INTRODUCTION_MAX_VERTICAL_UNITS,
@@ -196,7 +197,7 @@ function ParagraphLines({ paragraph }: ParagraphLinesProps) {
 
   return lines.map((line, index) => (
     <Fragment key={index}>
-      {line}
+      <FormattedText text={line} />
       {index < lines.length - 1 ? (
         <>
           <br />{" "}
@@ -430,7 +431,7 @@ function IntroductionTextBlockView({
             id="introduce-title"
             {...createEditableTextProps(editor, "introduce.title")}
           >
-            {introduce.title}
+            <FormattedText text={introduce.title} />
           </h1>
         ) : null}
 
@@ -440,7 +441,7 @@ function IntroductionTextBlockView({
               className="lead visual-inline-multiline"
               {...createEditableTextProps(editor, "introduce.content")}
             >
-              {introduce.content}
+              <FormattedText text={introduce.content} />
             </p>
           ) : (
             introduce.content
@@ -462,7 +463,7 @@ function IntroductionTextBlockView({
               `introductionTextBlocks:${block.id}:text`,
             )}
           >
-            {block.text}
+            <FormattedText text={block.text} />
           </p>
         ) : null}
       </div>
