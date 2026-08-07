@@ -4,10 +4,15 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { IntroductionSection } from "@/components/portfolio/IntroductionSection";
+import type { Skill } from "@/lib/content/types";
 
 afterEach(() => {
   cleanup();
 });
+
+const skills = [
+  { id: "typescript", name: "TypeScript", category: "Language", order: 1 },
+] as const satisfies readonly Skill[];
 
 describe("IntroductionSection", () => {
   it("introduce title/content를 임의 문구나 중복 없이 정확히 렌더링한다", () => {
@@ -16,7 +21,9 @@ describe("IntroductionSection", () => {
       content:
         "첫 문단 첫 줄 73\n첫 문단 둘째 줄 73\n\n두 번째 문단 첫 줄 73\n두 번째 문단 둘째 줄 73",
     } as const;
-    const { container } = render(<IntroductionSection introduce={introduce} />);
+    const { container } = render(
+      <IntroductionSection introduce={introduce} skills={skills} />,
+    );
 
     expect(
       screen.getByRole("heading", { level: 1, name: introduce.title }),
@@ -47,6 +54,7 @@ describe("IntroductionSection", () => {
     const { container } = render(
       <IntroductionSection
         introduce={{ title: "소개 계약", content: "소개 본문" }}
+        skills={skills}
       />,
     );
 
@@ -59,22 +67,38 @@ describe("IntroductionSection", () => {
     );
   });
 
-  it("exact 두 CTA와 승인된 proof 부재 empty status를 표시한다", () => {
+  it("CTA 없이 승인된 proof 부재 empty status만 표시한다", () => {
     const { container } = render(
       <IntroductionSection
         introduce={{ title: "소개 계약", content: "승인된 소개 본문" }}
+        skills={skills}
       />,
     );
     const section = container.querySelector<HTMLElement>("section#introduce");
     if (!section) throw new Error("introduce section이 필요합니다");
 
-    expect(
-      within(section)
-        .getAllByRole("link")
-        .map((link) => link.getAttribute("href")),
-    ).toEqual(["#career", "#contact"]);
+    expect(within(section).queryByRole("link")).not.toBeInTheDocument();
     expect(within(section).getByRole("status")).toHaveTextContent(
       /^표시할 소개 근거가 없습니다\.$/,
     );
+  });
+
+  it("기술을 별도 carousel section 없이 소개 안에 렌더링한다", () => {
+    const { container } = render(
+      <IntroductionSection
+        introduce={{ title: "소개 계약", content: "소개 본문" }}
+        skills={skills}
+      />,
+    );
+    const introduction = container.querySelector("section#introduce");
+
+    expect(introduction?.querySelector("#skills")).not.toBeNull();
+    expect(container.querySelector("section#skills")).toBeNull();
+    expect(
+      within(introduction as HTMLElement).getByRole("heading", {
+        level: 2,
+        name: "기술",
+      }),
+    ).toHaveAttribute("id", "skills-title");
   });
 });

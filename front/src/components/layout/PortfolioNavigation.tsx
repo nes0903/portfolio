@@ -7,7 +7,7 @@ interface PortfolioNavigationProps {
 }
 
 /**
- * desktop rail과 mobile TOC가 공유하는 5개 anchor 목록.
+ * desktop rail과 mobile TOC가 공유하는 4개 anchor 목록.
  */
 export function PortfolioNavigation({
   ariaLabel,

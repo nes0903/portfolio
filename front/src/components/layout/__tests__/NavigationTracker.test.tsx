@@ -23,7 +23,7 @@ interface CarouselFixture {
   readonly unmount: () => void;
 }
 
-const initialOffsets = [0, 1, 2, -2, -1] as const;
+const initialOffsets = [0, 1, 2, -1] as const;
 
 function renderCarouselTracker(): CarouselFixture {
   const queuedFrames: FrameRequestCallback[] = [];
@@ -109,14 +109,13 @@ function runNextFrame(queuedFrames: FrameRequestCallback[]): void {
 }
 
 describe("NavigationTracker infinite carousel", () => {
-  it("초기에는 05, 01, 02 card가 왼쪽, 중앙, 오른쪽에 배치된다", () => {
+  it("초기에는 04, 01, 02 card가 왼쪽, 중앙, 오른쪽에 배치된다", () => {
     renderCarouselTracker();
 
     expectCardOffsets({
       introduce: 0,
-      skills: 1,
-      career: 2,
-      "side-projects": -2,
+      career: 1,
+      "side-projects": 2,
       contact: -1,
     });
     expectCurrentSection("introduce");
@@ -126,7 +125,7 @@ describe("NavigationTracker infinite carousel", () => {
     );
   });
 
-  it("03을 클릭하면 02, 03, 04 card가 왼쪽, 중앙, 오른쪽으로 회전한다", () => {
+  it("02를 클릭하면 01, 02, 03 card가 왼쪽, 중앙, 오른쪽으로 회전한다", () => {
     const { queuedFrames } = renderCarouselTracker();
     const careerSection = document.getElementById("career");
     if (!careerSection) throw new Error("career section이 필요합니다");
@@ -135,8 +134,7 @@ describe("NavigationTracker infinite carousel", () => {
 
     expect(window.location.hash).toBe("#career");
     expectCardOffsets({
-      introduce: -2,
-      skills: -1,
+      introduce: -1,
       career: 0,
       "side-projects": 1,
       contact: 2,
@@ -147,14 +145,13 @@ describe("NavigationTracker infinite carousel", () => {
     expect(careerSection).toHaveFocus();
   });
 
-  it("05와 01 사이를 양끝 없이 한 칸으로 순환한다", () => {
+  it("04와 01 사이를 양끝 없이 한 칸으로 순환한다", () => {
     const { queuedFrames } = renderCarouselTracker();
 
     clickSection("연락처");
     runNextFrame(queuedFrames);
     expectCardOffsets({
       introduce: 1,
-      skills: 2,
       career: -2,
       "side-projects": -1,
       contact: 0,
@@ -164,9 +161,8 @@ describe("NavigationTracker infinite carousel", () => {
     runNextFrame(queuedFrames);
     expectCardOffsets({
       introduce: 0,
-      skills: 1,
-      career: 2,
-      "side-projects": -2,
+      career: 1,
+      "side-projects": 2,
       contact: -1,
     });
     expectCurrentSection("introduce");
@@ -175,26 +171,24 @@ describe("NavigationTracker infinite carousel", () => {
   it("양옆 card를 클릭하면 해당 card가 중앙으로 이동한다", () => {
     const { queuedFrames } = renderCarouselTracker();
 
-    clickCard("skills");
-    expect(window.location.hash).toBe("#skills");
+    clickCard("career");
+    expect(window.location.hash).toBe("#career");
     expectCardOffsets({
       introduce: -1,
-      skills: 0,
-      career: 1,
-      "side-projects": 2,
-      contact: -2,
+      career: 0,
+      "side-projects": 1,
+      contact: 2,
     });
-    expectCurrentSection("skills");
+    expectCurrentSection("career");
     runNextFrame(queuedFrames);
-    expect(document.getElementById("skills")).toHaveFocus();
+    expect(document.getElementById("career")).toHaveFocus();
 
     clickCard("introduce");
     expect(window.location.hash).toBe("#introduce");
     expectCardOffsets({
       introduce: 0,
-      skills: 1,
-      career: 2,
-      "side-projects": -2,
+      career: 1,
+      "side-projects": 2,
       contact: -1,
     });
   });
@@ -234,7 +228,6 @@ describe("NavigationTracker infinite carousel", () => {
 
     expectCardOffsets({
       introduce: 1,
-      skills: 2,
       career: -2,
       "side-projects": -1,
       contact: 0,
@@ -251,8 +244,7 @@ describe("NavigationTracker infinite carousel", () => {
     renderCarouselTracker();
 
     expectCardOffsets({
-      introduce: 2,
-      skills: -2,
+      introduce: -2,
       career: -1,
       "side-projects": 0,
       contact: 1,
@@ -272,8 +264,8 @@ describe("NavigationTracker infinite carousel", () => {
     document.body.append(refreshedNavigation);
 
     try {
-      clickSection("기술");
-      expectCurrentSection("skills");
+      clickSection("경력");
+      expectCurrentSection("career");
     } finally {
       refreshedNavigation.remove();
     }
@@ -289,7 +281,7 @@ describe("NavigationTracker infinite carousel", () => {
     unmount();
     expect(cancelAnimationFrameMock).toHaveBeenCalledWith(1);
 
-    window.history.replaceState(null, "", "#skills");
+    window.history.replaceState(null, "", "#contact");
     act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(queuedFrames).toHaveLength(1);
   });

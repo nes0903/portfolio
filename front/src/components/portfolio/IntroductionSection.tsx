@@ -2,15 +2,18 @@ import { EmptyState } from "@/components/portfolio/EmptyState";
 import type { PortfolioEditorBridge } from "@/components/portfolio/editor-types";
 import { IntroductionTextCanvas } from "@/components/portfolio/IntroductionTextCanvas";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
+import { SkillsContent } from "@/components/portfolio/SkillsSection";
 import { DEFAULT_INTRODUCTION_VISUAL } from "@/lib/content/schema";
 import type {
   Introduce,
   PortfolioIntroductionVisual,
+  Skill,
 } from "@/lib/content/types";
 
 interface IntroductionSectionProps {
   readonly editor?: PortfolioEditorBridge;
   readonly introduce: Introduce;
+  readonly skills: readonly Skill[];
   readonly visual?: PortfolioIntroductionVisual;
 }
 
@@ -20,6 +23,7 @@ interface IntroductionSectionProps {
 export function IntroductionSection({
   editor,
   introduce,
+  skills,
   visual = DEFAULT_INTRODUCTION_VISUAL,
 }: IntroductionSectionProps) {
   return (
@@ -37,14 +41,7 @@ export function IntroductionSection({
         editor={editor}
         introduce={introduce}
       />
-      <div className="actions">
-        <a className="btn" href="#career">
-          경력 근거 보기
-        </a>
-        <a className="btn alt" href="#contact">
-          연락 방법 보기
-        </a>
-      </div>
+      <SkillsContent editor={editor} skills={skills} />
       <EmptyState>표시할 소개 근거가 없습니다.</EmptyState>
     </PortfolioSection>
   );

@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { SkillsSection } from "@/components/portfolio/SkillsSection";
+import { SkillsContent } from "@/components/portfolio/SkillsSection";
 import type { Skill } from "@/lib/content/types";
 
 afterEach(() => {
@@ -17,12 +17,12 @@ const skills = [
   { id: "postgres", name: "PostgreSQL", category: "Middle Data", order: 4 },
 ] as const satisfies readonly Skill[];
 
-describe("SkillsSection", () => {
+describe("SkillsContent", () => {
   it("category 최초 등장 순서로 group을 만들고 group 내부 loader order를 유지한다", () => {
-    const { container } = render(<SkillsSection skills={skills} />);
+    const { container } = render(<SkillsContent skills={skills} />);
     const groups = [
       ...container.querySelectorAll<HTMLElement>(
-        "section#skills article[aria-labelledby]",
+        "[data-skills-content] article[aria-labelledby]",
       ),
     ];
 
@@ -57,9 +57,9 @@ describe("SkillsSection", () => {
     }
   });
 
-  it("미제공 proficiency를 생성하지 않고 exact 표시 정책을 한 번만 렌더링한다", () => {
-    const { container } = render(<SkillsSection skills={skills} />);
-    const groups = container.querySelectorAll("section#skills article");
+  it("미제공 proficiency와 표시 정책 문구를 렌더링하지 않는다", () => {
+    const { container } = render(<SkillsContent skills={skills} />);
+    const groups = container.querySelectorAll("[data-skills-content] article");
 
     groups.forEach((group) => {
       expect(
@@ -81,23 +81,14 @@ describe("SkillsSection", () => {
         /초급|중급|고급|beginner|intermediate|advanced|\bscore\b|\bprogress\b|\d+\s*%|\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/i,
       );
     });
-    const policies = container.querySelectorAll<HTMLElement>(
-      "section#skills div.policy",
+    expect(container).not.toHaveTextContent("표시 기준");
+    expect(container).not.toHaveTextContent(
+      "승인된 기술만 표시하며, 제공되지 않은 숙련도는 생성하지 않습니다.",
     );
-    expect(policies).toHaveLength(1);
-    const policy = policies[0];
-    if (!policy) throw new Error("skills policy가 필요합니다");
-    expect(within(policy).getByText("표시 기준", { selector: "strong" })).toBeInTheDocument();
-    expect(
-      within(policy).getByText(
-        "승인된 기술만 표시하며, 제공되지 않은 숙련도는 생성하지 않습니다.",
-        { selector: "span" },
-      ),
-    ).toBeInTheDocument();
   });
 
   it("빈 배열에서는 표시 정책을 중복 노출하지 않는다", () => {
-    const { container } = render(<SkillsSection skills={[]} />);
+    const { container } = render(<SkillsContent skills={[]} />);
 
     expect(container).not.toHaveTextContent("표시 기준");
     expect(container).not.toHaveTextContent(
@@ -106,22 +97,23 @@ describe("SkillsSection", () => {
   });
 
   it("빈 배열은 명시적 status empty state로 렌더링한다", () => {
-    const { container } = render(<SkillsSection skills={[]} />);
-    const section = container.querySelector<HTMLElement>("section#skills");
+    const { container } = render(<SkillsContent skills={[]} />);
+    const content = container.querySelector<HTMLElement>("[data-skills-content]");
 
-    if (!section) throw new Error("skills section이 필요합니다");
-    expect(within(section).getByRole("status")).toHaveTextContent(
+    if (!content) throw new Error("skills content가 필요합니다");
+    expect(within(content).getByRole("status")).toHaveTextContent(
       /^표시할 기술이 없습니다\.$/,
     );
   });
 
-  it("기존 skills anchor와 h2 accessible-name 계약을 유지한다", () => {
-    const { container } = render(<SkillsSection skills={skills} />);
-    const section = container.querySelector<HTMLElement>("section#skills");
+  it("소개 내부에서 사용할 skills anchor와 h2 accessible-name을 제공한다", () => {
+    const { container } = render(<SkillsContent skills={skills} />);
+    const content = container.querySelector<HTMLElement>("[data-skills-content]");
 
-    expect(section).not.toBeNull();
-    expect(section).toHaveAttribute("tabindex", "-1");
-    expect(section).toHaveAttribute("aria-labelledby", "skills-title");
+    expect(content).not.toBeNull();
+    expect(content).toHaveAttribute("id", "skills");
+    expect(content).toHaveAttribute("aria-labelledby", "skills-title");
+    expect(container.querySelector("section#skills")).toBeNull();
     expect(
       screen.getByRole("heading", { level: 2, name: "기술" }),
     ).toHaveAttribute("id", "skills-title");

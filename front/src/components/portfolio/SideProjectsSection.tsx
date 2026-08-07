@@ -24,14 +24,14 @@ export function SideProjectsSection({
   return (
     <PortfolioSection
       id="side-projects"
-      number="04"
-      eyebrow="사이드 프로젝트"
-      title="사이드 프로젝트"
+      number="03"
+      eyebrow="프로젝트"
+      title="프로젝트"
       editor={editor}
       visual={visual}
     >
       {sideProjects.length === 0 ? (
-        <EmptyState>표시할 사이드 프로젝트가 없습니다.</EmptyState>
+        <EmptyState>표시할 프로젝트가 없습니다.</EmptyState>
       ) : (
         <div className="projects">
           {sideProjects.map((project) => {

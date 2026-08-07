@@ -32,7 +32,7 @@ export function ContactSection({
   return (
     <PortfolioSection
       id="contact"
-      number="05"
+      number="04"
       eyebrow="연락처"
       title="연락처"
       editor={editor}

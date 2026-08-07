@@ -13,6 +13,7 @@ import type { IntroductionTextBlockLayoutPatch } from "@/components/portfolio/ed
 import { initialAdminFormState } from "@/lib/auth/form-state";
 import { normalizePortfolioContentForSave } from "@/lib/content/admin-form";
 import {
+  INTRODUCTION_VERTICAL_INPUT_STEP_PX,
   INTRODUCTION_MAX_VERTICAL_UNITS,
   INTRODUCTION_MIN_HEIGHT_UNITS,
   INTRODUCTION_VERTICAL_UNIT_PX,
@@ -182,9 +183,8 @@ function splitCommaSeparated(value: string): string[] {
 
 const SECTION_LABELS: Readonly<Record<PortfolioSectionId, string>> = {
   introduce: "소개",
-  skills: "기술",
   career: "경력",
-  "side-projects": "사이드 프로젝트",
+  "side-projects": "프로젝트",
   contact: "연락처",
 };
 
@@ -474,7 +474,7 @@ function IntroductionTextBlockControls({
                       INTRODUCTION_VERTICAL_UNIT_PX,
                   })
                 }
-                step={INTRODUCTION_VERTICAL_UNIT_PX}
+                step={INTRODUCTION_VERTICAL_INPUT_STEP_PX}
                 type="number"
                 value={
                   selectedBlock.y * INTRODUCTION_VERTICAL_UNIT_PX
@@ -519,7 +519,7 @@ function IntroductionTextBlockControls({
                       INTRODUCTION_VERTICAL_UNIT_PX,
                   })
                 }
-                step={INTRODUCTION_VERTICAL_UNIT_PX}
+                step={INTRODUCTION_VERTICAL_INPUT_STEP_PX}
                 type="number"
                 value={
                   selectedBlock.height * INTRODUCTION_VERTICAL_UNIT_PX
@@ -1122,18 +1122,8 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             value={content.introduce.content}
           />
         </div>
-      </section>
-
-      <section
-        className="admin-edit-section"
-        data-admin-section="skills"
-        data-selected={selectedSection === "skills" ? "true" : undefined}
-      >
-        <div className="admin-section-heading">
-          <div>
-            <span>02</span>
-            <h2>기술</h2>
-          </div>
+        <div className="admin-subsection-heading">
+          <h3>소개에 표시할 기술</h3>
           <button
             className="admin-button"
             onClick={() =>
@@ -1155,14 +1145,6 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             기술 추가
           </button>
         </div>
-        <SectionVisualControls
-          disabled={uploadingSection === "skills"}
-          onChange={(visualPatch) => updateSectionVisual("skills", visualPatch)}
-          onRemoveImage={() => removeSectionImage("skills")}
-          onUploadImage={(file) => void uploadSectionImage("skills", file)}
-          sectionId="skills"
-          visual={content.visuals.sections.skills}
-        />
         <div className="admin-item-list">
           {content.skills.map((skill, index) => (
             <fieldset className="admin-item" key={skill.id}>
@@ -1217,7 +1199,7 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       >
         <div className="admin-section-heading">
           <div>
-            <span>03</span>
+            <span>02</span>
             <h2>경력</h2>
           </div>
           <button
@@ -1475,8 +1457,8 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       >
         <div className="admin-section-heading">
           <div>
-            <span>04</span>
-            <h2>사이드 프로젝트</h2>
+            <span>03</span>
+            <h2>프로젝트</h2>
           </div>
           <button
             className="admin-button"
@@ -1629,7 +1611,7 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       >
         <div className="admin-section-heading">
           <div>
-            <span>05</span>
+            <span>04</span>
             <h2>연락처</h2>
           </div>
           <button

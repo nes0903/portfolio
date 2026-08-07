@@ -21,7 +21,7 @@ function isPortfolioSectionId(value: string): value is PortfolioSectionId {
 }
 
 /**
- * 다섯 card의 차이를 -2..2 범위의 원형 상대 위치로 변환한다.
+ * 네 card의 차이를 원형 상대 위치로 변환한다.
  */
 function getCircularOffset(cardIndex: number, activeIndex: number): number {
   let offset = cardIndex - activeIndex;

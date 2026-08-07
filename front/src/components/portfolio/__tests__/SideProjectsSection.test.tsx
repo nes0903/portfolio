@@ -139,7 +139,7 @@ describe("SideProjectsSection", () => {
 
     if (!section) throw new Error("side-projects section이 필요합니다");
     expect(within(section).getByRole("status")).toHaveTextContent(
-      "표시할 사이드 프로젝트가 없습니다.",
+      "표시할 프로젝트가 없습니다.",
     );
   });
 
@@ -155,7 +155,7 @@ describe("SideProjectsSection", () => {
     expect(section).toHaveAttribute("tabindex", "-1");
     expect(section).toHaveAttribute("aria-labelledby", "side-projects-title");
     expect(
-      screen.getByRole("heading", { level: 2, name: "사이드 프로젝트" }),
+      screen.getByRole("heading", { level: 2, name: "프로젝트" }),
     ).toHaveAttribute("id", "side-projects-title");
   });
 });

@@ -32,6 +32,7 @@ describe("IntroductionTextCanvas", () => {
     const { container } = render(
       <IntroductionSection
         introduce={{ title: "배치 가능한 제목", content: "배치 가능한 내용" }}
+        skills={[]}
         visual={visual}
       />,
     );
@@ -74,6 +75,7 @@ describe("IntroductionTextCanvas", () => {
       <IntroductionSection
         editor={editor}
         introduce={{ title: "높이가 큰 제목", content: "소개 내용" }}
+        skills={[]}
         visual={visual}
       />,
     );
@@ -116,6 +118,7 @@ describe("IntroductionTextCanvas", () => {
       <IntroductionSection
         editor={editor}
         introduce={{ title: "높이가 큰 제목", content: "소개 내용" }}
+        skills={[]}
         visual={{ ...visual, textBlocks: [...visual.textBlocks] }}
       />,
     );
@@ -141,6 +144,7 @@ describe("IntroductionTextCanvas", () => {
       <IntroductionSection
         editor={editor}
         introduce={{ title: "이동할 제목", content: "소개 내용" }}
+        skills={[]}
       />,
     );
     const canvas = container.querySelector<HTMLElement>(
@@ -243,6 +247,7 @@ describe("IntroductionTextCanvas", () => {
       <IntroductionSection
         editor={editor}
         introduce={{ title: "제목", content: "이동할 본문" }}
+        skills={[]}
       />,
     );
     const canvas = container.querySelector<HTMLElement>(

@@ -633,7 +633,7 @@ export const careerWorksSchema = z
   .superRefine(validateUniqueCareerWorkIdentityAndOrder);
 
 /**
- * 사이드 프로젝트 링크 계약.
+ * 프로젝트 링크 계약.
  */
 const sideProjectLinksSchema = z
   .object({
@@ -643,7 +643,7 @@ const sideProjectLinksSchema = z
   .strict();
 
 /**
- * 사이드 프로젝트 항목 계약.
+ * 프로젝트 항목 계약.
  */
 export const sideProjectItemSchema = z
   .object({
@@ -658,7 +658,7 @@ export const sideProjectItemSchema = z
   .strict();
 
 /**
- * 사이드 프로젝트 JSON 배열 계약.
+ * 프로젝트 JSON 배열 계약.
  */
 export const sideProjectsSchema = z
   .array(sideProjectItemSchema)

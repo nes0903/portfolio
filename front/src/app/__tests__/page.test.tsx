@@ -15,7 +15,6 @@ vi.mock("@/lib/content/supabase-loader", () => ({
 
 const navigationHrefs = [
   "#introduce",
-  "#skills",
   "#career",
   "#side-projects",
   "#contact",
@@ -102,7 +101,7 @@ afterEach(() => {
 });
 
 describe("portfolio home page shell", () => {
-  it("본문 skip link와 desktop/mobile 5개 anchor navigation을 제공한다", async () => {
+  it("본문 skip link와 desktop/mobile 4개 anchor navigation을 제공한다", async () => {
     await renderHomePage();
 
     expect(screen.getByRole("link", { name: "본문으로 이동" })).toHaveAttribute(
@@ -122,7 +121,7 @@ describe("portfolio home page shell", () => {
     }
   });
 
-  it("단일 페이지 landmark와 이름이 연결된 5개 focusable section을 렌더링한다", async () => {
+  it("단일 페이지 landmark와 이름이 연결된 4개 focusable section을 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
     expect(screen.getByRole("banner")).toBeInTheDocument();
@@ -132,11 +131,10 @@ describe("portfolio home page shell", () => {
     );
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
-    expect(container.querySelectorAll("main > section")).toHaveLength(5);
+    expect(container.querySelectorAll("main > section")).toHaveLength(4);
 
     for (const id of [
       "introduce",
-      "skills",
       "career",
       "side-projects",
       "contact",
@@ -160,10 +158,15 @@ describe("portfolio home page shell", () => {
     ).toHaveAttribute("id", "introduce-title");
     expect(container.querySelectorAll("h1")).toHaveLength(1);
 
+    expect(
+      screen.getByRole("heading", { level: 2, name: "기술" }),
+    ).toHaveAttribute("id", "skills-title");
+    expect(container.querySelector("section#skills")).toBeNull();
+    expect(container.querySelector("section#introduce #skills")).not.toBeNull();
+
     for (const [id, name] of [
-      ["skills", "기술"],
       ["career", "경력"],
-      ["side-projects", "사이드 프로젝트"],
+      ["side-projects", "프로젝트"],
       ["contact", "연락처"],
     ] as const) {
       expect(screen.getByRole("heading", { level: 2, name })).toHaveAttribute(
@@ -187,10 +190,17 @@ describe("portfolio home page shell", () => {
   it("선택적 배열이 비면 각 section에서 성공 콘텐츠와 구분되는 empty state를 표시한다", async () => {
     const { container } = await renderHomePage(emptyCollectionsContent);
 
+    const introduction = container.querySelector<HTMLElement>("#introduce");
+    if (!introduction) throw new Error("introduce section이 필요합니다");
+    expect(
+      within(introduction).getByText("표시할 기술이 없습니다.", {
+        selector: '[role="status"]',
+      }),
+    ).toHaveTextContent("표시할 기술이 없습니다.");
+
     for (const [sectionId, message] of [
-      ["skills", "표시할 기술이 없습니다."],
       ["career", "표시할 경력이 없습니다."],
-      ["side-projects", "표시할 사이드 프로젝트가 없습니다."],
+      ["side-projects", "표시할 프로젝트가 없습니다."],
       ["contact", "표시할 연락처가 없습니다."],
     ] as const) {
       const section = container.querySelector<HTMLElement>(`#${sectionId}`);

@@ -3,14 +3,11 @@ import {
   createEditableTextProps,
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
-import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
-import type { PortfolioSectionVisual, Skill } from "@/lib/content/types";
-import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
+import type { Skill } from "@/lib/content/types";
 
-interface SkillsSectionProps {
+interface SkillsContentProps {
   readonly editor?: PortfolioEditorBridge;
   readonly skills: readonly Skill[];
-  readonly visual?: PortfolioSectionVisual;
 }
 
 interface SkillGroup {
@@ -47,73 +44,66 @@ function groupSkillsByCategory(skills: readonly Skill[]): readonly SkillGroup[] 
 }
 
 /**
- * 승인된 skill name을 category별 접근 가능한 chip list로 렌더링한다.
+ * 소개 section 안에서 승인된 skill name을 category별 chip list로 렌더링한다.
  */
-export function SkillsSection({
+export function SkillsContent({
   editor,
   skills,
-  visual = DEFAULT_SECTION_VISUAL,
-}: SkillsSectionProps) {
+}: SkillsContentProps) {
   const groups = groupSkillsByCategory(skills);
 
   return (
-    <PortfolioSection
-      editor={editor}
+    <div
+      aria-labelledby="skills-title"
+      className="introduction-skills"
+      data-skills-content
       id="skills"
-      number="02"
-      eyebrow="기술"
-      title="기술"
-      visual={visual}
     >
+      <div className="introduction-skills-heading">
+        <p className="eyebrow">기술</p>
+        <h2 id="skills-title">기술</h2>
+      </div>
       {groups.length === 0 ? (
         <EmptyState>표시할 기술이 없습니다.</EmptyState>
       ) : (
-        <>
-          <div className="skills">
-            {groups.map((group, index) => {
-              const titleId = `skill-category-${index}-title`;
+        <div className="skills">
+          {groups.map((group, index) => {
+            const titleId = `skill-category-${index}-title`;
 
-              return (
-                <article
-                  className="card skill"
-                  aria-labelledby={titleId}
-                  key={group.category}
+            return (
+              <article
+                className="card skill"
+                aria-labelledby={titleId}
+                key={group.category}
+              >
+                <h3
+                  id={titleId}
+                  {...createEditableTextProps(
+                    editor,
+                    `skill-category:${group.skills.map(({ id }) => id).join(",")}`,
+                  )}
                 >
-                  <h3
-                    id={titleId}
-                    {...createEditableTextProps(
-                      editor,
-                      `skill-category:${group.skills.map(({ id }) => id).join(",")}`,
-                    )}
-                  >
-                    {group.category}
-                  </h3>
-                  <ul className="chips" aria-label={`${group.category} 기술`}>
-                    {group.skills.map((skill) => (
-                      <li
-                        className="chip"
-                        key={skill.id}
-                        {...createEditableTextProps(
-                          editor,
-                          `skills:${skill.id}:name`,
-                        )}
-                      >
-                        {skill.name}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              );
-            })}
-          </div>
-          <div className="policy">
-            <strong>표시 기준</strong>
-            <span>
-              승인된 기술만 표시하며, 제공되지 않은 숙련도는 생성하지 않습니다.
-            </span>
-          </div>
-        </>
+                  {group.category}
+                </h3>
+                <ul className="chips" aria-label={`${group.category} 기술`}>
+                  {group.skills.map((skill) => (
+                    <li
+                      className="chip"
+                      key={skill.id}
+                      {...createEditableTextProps(
+                        editor,
+                        `skills:${skill.id}:name`,
+                      )}
+                    >
+                      {skill.name}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
       )}
-    </PortfolioSection>
+    </div>
   );
 }

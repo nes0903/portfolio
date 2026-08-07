@@ -28,7 +28,7 @@ export function CareerSection({
     <PortfolioSection
       editor={editor}
       id="career"
-      number="03"
+      number="02"
       eyebrow="경력"
       title="경력"
       visual={visual}

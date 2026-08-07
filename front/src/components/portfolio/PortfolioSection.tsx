@@ -28,9 +28,8 @@ type SectionStyle = CSSProperties & {
 
 const initialCarouselOffsets: Readonly<Record<PortfolioSectionId, number>> = {
   introduce: 0,
-  skills: 1,
-  career: 2,
-  "side-projects": -2,
+  career: 1,
+  "side-projects": 2,
   contact: -1,
 };
 
