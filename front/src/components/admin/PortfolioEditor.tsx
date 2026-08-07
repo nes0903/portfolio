@@ -956,9 +956,16 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   }
 
   function commitInlineText(field: string, value: string): void {
-    const normalizedValue =
-      field === "introduce.content" ||
-      field.startsWith("introductionTextBlocks:")
+    const isCareerAction =
+      field.startsWith("careerWorks:") && field.endsWith(":description");
+    const normalizedValue = isCareerAction
+      ? value
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .join("\n")
+      : field === "introduce.content" ||
+          field.startsWith("introductionTextBlocks:")
         ? value.trim()
         : value.replace(/\s+/g, " ").trim();
 
@@ -1535,7 +1542,7 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                   value={work.title}
                 />
                 <TextAreaField
-                  label="설명"
+                  label="Action (한 줄에 하나)"
                   onChange={(description) =>
                     setContent((current) => ({
                       ...current,
@@ -1544,6 +1551,8 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                       ),
                     }))
                   }
+                  placeholder={"- 첫 번째 작업 내용\n- 두 번째 작업 내용"}
+                  rows={6}
                   value={work.description}
                 />
                 <TextAreaField

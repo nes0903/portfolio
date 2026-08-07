@@ -30,7 +30,8 @@ const careers: readonly CareerWithWorks[] = [
         id: "contract-work",
         careerId: "first-career",
         title: "콘텐츠 계약 구축",
-        description: "빌드 전에 콘텐츠 오류를 차단했습니다.",
+        description:
+          "- [b]빌드 전에[/b] 콘텐츠 오류를 차단했습니다.\n- [u]계약 오류[/u]를 [i]빠르게[/i] [mark]자동으로 검증[/mark]했습니다.",
         achievements: ["잘못된 배포를 사전에 차단", "검증 시간을 단축"],
         images: [
           {
@@ -93,6 +94,18 @@ function careerArticles(container: HTMLElement): HTMLElement[] {
   ];
 }
 
+function actionItems(description: string): string[] {
+  return description
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^[-•]\s*/, "")
+        .replace(/\[(?:\/)?(?:b|i|u|mark)\]/g, ""),
+    )
+    .filter(Boolean);
+}
+
 describe("CareerSection", () => {
   it("join된 career/work를 각 회사 아래 loader order로 정확히 한 번 렌더링한다", () => {
     const { container } = render(<CareerSection careers={careers} />);
@@ -135,7 +148,11 @@ describe("CareerSection", () => {
         const work = career.works[workIndex];
         if (!work) throw new Error("career-work fixture가 필요합니다");
         expect(detail.open).toBe(workIndex === 0);
-        expect(within(detail).getByText(work.description)).toBeInTheDocument();
+        expect(
+          within(detail)
+            .getByRole("list", { name: `${work.title} 작업 내용` })
+            .querySelectorAll("li"),
+        ).toHaveLength(actionItems(work.description).length);
       });
     });
 
@@ -165,13 +182,18 @@ describe("CareerSection", () => {
             (section) =>
               within(section).getByRole("heading", { level: 4 }).textContent,
           ),
-        ).toEqual(["Action", "Verified Outcome", "Tech"]);
+        ).toEqual(["Tech", "Action", "Outcome"]);
 
-        const [action, outcome, tech] = evidenceSections;
-        if (!action || !outcome || !tech) {
+        const [tech, action, outcome] = evidenceSections;
+        if (!tech || !action || !outcome) {
           throw new Error("evidence section 세 개가 필요합니다");
         }
-        expect(within(action).getByText(work.description)).toBeInTheDocument();
+
+        expect(
+          within(action)
+            .getAllByRole("listitem")
+            .map((item) => item.textContent),
+        ).toEqual(actionItems(work.description));
 
         if (work.achievements) {
           expect(
@@ -240,6 +262,15 @@ describe("CareerSection", () => {
     if (!backdrop) throw new Error("이미지 뷰어 배경이 필요합니다");
     fireEvent.click(backdrop);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("Action의 굵게, 기울임, 밑줄, 하이라이트 서식을 렌더링한다", () => {
+    render(<CareerSection careers={careers} />);
+
+    expect(screen.getByText("빌드 전에").tagName).toBe("STRONG");
+    expect(screen.getByText("계약 오류").tagName).toBe("U");
+    expect(screen.getByText("빠르게").tagName).toBe("EM");
+    expect(screen.getByText("자동으로 검증").tagName).toBe("MARK");
   });
 
   it("work가 없는 career와 careers 빈 배열을 명시적 status로 구분한다", () => {

@@ -143,4 +143,109 @@ describe("PortfolioExperience visual editor bridge", () => {
       "화면에서 수정한 추가 텍스트",
     );
   });
+
+  it("관리자 미리보기에서 편집한 Action 서식을 경량 마크업으로 보존한다", () => {
+    const onTextCommit = vi.fn();
+    render(
+      <PortfolioExperience
+        content={createContent()}
+        editor={{
+          onChangeIntroductionTextBlock: vi.fn(),
+          onSelectIntroductionTextBlock: vi.fn(),
+          onSelectSection: vi.fn(),
+          onTextCommit,
+          selectedIntroductionTextBlockId: null,
+          selectedSection: "career",
+        }}
+      />,
+    );
+    const actionList = screen.getByRole("list", {
+      name: "Define content contract 작업 내용",
+    });
+
+    actionList.innerHTML =
+      "<li><strong>강조 문구</strong>입니다.</li><li><u>밑줄 문구</u>입니다.</li>";
+    fireEvent.blur(actionList);
+
+    expect(onTextCommit).toHaveBeenCalledWith(
+      "careerWorks:current-contract:description",
+      "- [b]강조 문구[/b]입니다.\n- [u]밑줄 문구[/u]입니다.",
+    );
+  });
+
+  it("중앙 미리보기의 선택 서식을 같은 버튼으로 적용하고 해제한다", () => {
+    const originalRectDescriptor = Object.getOwnPropertyDescriptor(
+      Range.prototype,
+      "getBoundingClientRect",
+    );
+    Object.defineProperty(Range.prototype, "getBoundingClientRect", {
+      configurable: true,
+      value: () =>
+        ({
+          bottom: 120,
+          height: 20,
+          left: 100,
+          right: 180,
+          top: 100,
+          width: 80,
+          x: 100,
+          y: 100,
+        }) as DOMRect,
+    });
+
+    try {
+      render(
+        <PortfolioExperience
+          content={createContent()}
+          editor={{
+            onChangeIntroductionTextBlock: vi.fn(),
+            onSelectIntroductionTextBlock: vi.fn(),
+            onSelectSection: vi.fn(),
+            onTextCommit: vi.fn(),
+            selectedIntroductionTextBlockId: null,
+            selectedSection: "career",
+          }}
+        />,
+      );
+      const actionList = screen.getByRole("list", {
+        name: "Define content contract 작업 내용",
+      });
+      const textNode = actionList.querySelector("li")?.firstChild;
+      const selection = window.getSelection();
+
+      if (!textNode || !selection) {
+        throw new Error("Action 선택 범위가 필요합니다");
+      }
+
+      const range = document.createRange();
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, Math.min(4, textNode.textContent?.length ?? 0));
+      selection.removeAllRanges();
+      selection.addRange(range);
+      fireEvent(document, new Event("selectionchange"));
+
+      const underlineButton = screen.getByRole("button", {
+        name: "밑줄 토글",
+      });
+      fireEvent.mouseDown(underlineButton);
+      fireEvent.click(underlineButton);
+      expect(actionList.querySelectorAll("u")).toHaveLength(1);
+      expect(underlineButton).toHaveAttribute("aria-pressed", "true");
+
+      fireEvent.mouseDown(underlineButton);
+      fireEvent.click(underlineButton);
+      expect(actionList.querySelectorAll("u")).toHaveLength(0);
+      expect(actionList.innerHTML).not.toContain("[u][u]");
+    } finally {
+      if (originalRectDescriptor) {
+        Object.defineProperty(
+          Range.prototype,
+          "getBoundingClientRect",
+          originalRectDescriptor,
+        );
+      } else {
+        Reflect.deleteProperty(Range.prototype, "getBoundingClientRect");
+      }
+    }
+  });
 });
