@@ -172,6 +172,17 @@ export const portfolioBackgroundImageSchema = z
   })
   .strict();
 
+/**
+ * 경력 작업에 첨부하는 공개 스크린샷 계약.
+ */
+export const portfolioCareerWorkImageSchema = z
+  .object({
+    alt: nonBlankStringSchema.max(160),
+    path: portfolioAssetPathSchema,
+    url: httpsUrlSchema,
+  })
+  .strict();
+
 export const portfolioSectionVisualSchema = z
   .object({
     accentColor: hexColorSchema.default(DEFAULT_SECTION_VISUAL.accentColor),
@@ -620,6 +631,7 @@ export const careerWorkItemSchema = z
     title: nonBlankStringSchema,
     description: nonBlankStringSchema,
     achievements: careerEvidenceSchema.optional(),
+    images: z.array(portfolioCareerWorkImageSchema).max(8).optional(),
     technologies: careerEvidenceSchema.optional(),
     order: z.number().int().min(0),
   })

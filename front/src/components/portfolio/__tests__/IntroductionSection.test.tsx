@@ -67,7 +67,7 @@ describe("IntroductionSection", () => {
     );
   });
 
-  it("CTA 없이 승인된 proof 부재 empty status만 표시한다", () => {
+  it("CTA와 소개 근거 empty status를 표시하지 않는다", () => {
     const { container } = render(
       <IntroductionSection
         introduce={{ title: "소개 계약", content: "승인된 소개 본문" }}
@@ -78,9 +78,7 @@ describe("IntroductionSection", () => {
     if (!section) throw new Error("introduce section이 필요합니다");
 
     expect(within(section).queryByRole("link")).not.toBeInTheDocument();
-    expect(within(section).getByRole("status")).toHaveTextContent(
-      /^표시할 소개 근거가 없습니다\.$/,
-    );
+    expect(within(section).queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("기술을 별도 carousel section 없이 소개 안에 렌더링한다", () => {

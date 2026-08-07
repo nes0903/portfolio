@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { CareerSection } from "@/components/portfolio/CareerSection";
@@ -26,6 +32,18 @@ const careers: readonly CareerWithWorks[] = [
         title: "콘텐츠 계약 구축",
         description: "빌드 전에 콘텐츠 오류를 차단했습니다.",
         achievements: ["잘못된 배포를 사전에 차단", "검증 시간을 단축"],
+        images: [
+          {
+            alt: "콘텐츠 검증 관리자 화면",
+            path: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+            url: "https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+          },
+          {
+            alt: "콘텐츠 검증 결과 화면",
+            path: "11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-333333333333.webp",
+            url: "https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-333333333333.webp",
+          },
+        ],
         order: 1,
       },
       {
@@ -187,6 +205,48 @@ describe("CareerSection", () => {
         }
       }
     }
+  });
+
+  it("사진 클릭으로 중앙 뷰어를 열고 순환한 뒤 바깥 클릭으로 닫는다", () => {
+    render(<CareerSection careers={careers} />);
+    const work = careers[0]?.works[0];
+    const firstImage = work?.images?.[0];
+    const secondImage = work?.images?.[1];
+    if (!work || !firstImage || !secondImage) {
+      throw new Error("경력 작업 이미지 fixture 두 개가 필요합니다");
+    }
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `${firstImage.alt} 크게 보기` }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: `${work.title} 작업 이미지 뷰어`,
+    });
+    expect(
+      within(dialog).getByRole("img", { name: firstImage.alt }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "다음 작업 이미지" }),
+    );
+    expect(
+      within(dialog).getByRole("img", { name: secondImage.alt }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "다음 작업 이미지" }),
+    );
+    expect(
+      within(dialog).getByRole("img", { name: firstImage.alt }),
+    ).toBeInTheDocument();
+
+    const backdrop = document.querySelector<HTMLElement>(
+      ".career-image-modal-backdrop",
+    );
+    if (!backdrop) throw new Error("이미지 뷰어 배경이 필요합니다");
+    fireEvent.click(backdrop);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("work가 없는 career와 careers 빈 배열을 명시적 status로 구분한다", () => {

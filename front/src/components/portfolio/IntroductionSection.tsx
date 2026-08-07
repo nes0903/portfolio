@@ -1,4 +1,3 @@
-import { EmptyState } from "@/components/portfolio/EmptyState";
 import type { PortfolioEditorBridge } from "@/components/portfolio/editor-types";
 import { IntroductionTextCanvas } from "@/components/portfolio/IntroductionTextCanvas";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
@@ -42,7 +41,6 @@ export function IntroductionSection({
         introduce={introduce}
       />
       <SkillsContent editor={editor} skills={skills} />
-      <EmptyState>표시할 소개 근거가 없습니다.</EmptyState>
     </PortfolioSection>
   );
 }

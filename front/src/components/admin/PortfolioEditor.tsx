@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState, useMemo, useState } from "react";
 
 import { savePortfolioAction } from "@/app/admin/actions";
@@ -27,6 +28,10 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 interface PortfolioEditorProps {
   readonly initialContent: PortfolioDocumentContent;
 }
+
+type CareerWorkImage = NonNullable<
+  PortfolioDocumentContent["careerWorks"][number]["images"]
+>[number];
 
 interface PreviewTextBlockRectangle {
   readonly height: number;
@@ -579,6 +584,9 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   const [selectedIntroductionTextBlockId, setSelectedIntroductionTextBlockId] =
     useState<string | null>("intro-title");
   const [assetMessage, setAssetMessage] = useState("");
+  const [uploadingCareerWorkId, setUploadingCareerWorkId] = useState<
+    string | null
+  >(null);
   const [uploadingSection, setUploadingSection] =
     useState<PortfolioSectionId | null>(null);
   const [state, formAction] = useActionState(
@@ -798,6 +806,144 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
     } finally {
       setUploadingSection(null);
     }
+  }
+
+  async function uploadCareerWorkImages(
+    workId: string,
+    files: readonly File[],
+  ): Promise<void> {
+    const work = content.careerWorks.find((item) => item.id === workId);
+
+    if (!work || files.length === 0) return;
+
+    const currentImages = work.images ?? [];
+
+    if (currentImages.length + files.length > 8) {
+      setAssetMessage(
+        `작업 스크린샷은 최대 8장까지 등록할 수 있습니다. (현재 ${currentImages.length}장)`,
+      );
+      return;
+    }
+
+    for (const file of files) {
+      if (!IMAGE_EXTENSIONS[file.type]) {
+        setAssetMessage("JPEG, PNG, WebP, AVIF 이미지만 업로드할 수 있습니다.");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setAssetMessage("이미지는 파일당 5MB 이하여야 합니다.");
+        return;
+      }
+    }
+
+    setUploadingCareerWorkId(workId);
+    setAssetMessage(`${files.length}개 스크린샷을 업로드하고 있습니다.`);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setAssetMessage("로그인 세션을 확인할 수 없습니다.");
+        return;
+      }
+
+      const uploadResults = await Promise.all(
+        files.map(async (file, index) => {
+          const extension = IMAGE_EXTENSIONS[file.type];
+          if (!extension) {
+            return { error: "지원하지 않는 이미지 형식입니다." } as const;
+          }
+
+          const path = `${userData.user.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await supabase.storage
+            .from("portfolio-assets")
+            .upload(path, file, {
+              cacheControl: "3600",
+              contentType: file.type,
+              upsert: false,
+            });
+
+          if (uploadError) {
+            return { error: uploadError.message } as const;
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from("portfolio-assets")
+            .getPublicUrl(path);
+          const image: CareerWorkImage = {
+            alt: `${work.title} 작업 스크린샷 ${currentImages.length + index + 1}`,
+            path,
+            url: publicUrlData.publicUrl,
+          };
+
+          return { image } as const;
+        }),
+      );
+      const uploadedImages = uploadResults.flatMap(
+        (result): CareerWorkImage[] =>
+          "image" in result && result.image ? [result.image] : [],
+      );
+      const failureCount = uploadResults.length - uploadedImages.length;
+
+      if (uploadedImages.length > 0) {
+        setContent((current) => ({
+          ...current,
+          careerWorks: current.careerWorks.map((item) =>
+            item.id === workId
+              ? {
+                  ...item,
+                  images: [...(item.images ?? []), ...uploadedImages],
+                }
+              : item,
+          ),
+        }));
+      }
+
+      setAssetMessage(
+        failureCount === 0
+          ? `${uploadedImages.length}개 스크린샷을 업로드했습니다. 저장하면 공개 화면에 반영됩니다.`
+          : `${uploadedImages.length}개 업로드, ${failureCount}개 실패했습니다.`,
+      );
+    } catch {
+      setAssetMessage("스크린샷 업로드 중 네트워크 오류가 발생했습니다.");
+    } finally {
+      setUploadingCareerWorkId(null);
+    }
+  }
+
+  function updateCareerWorkImageAlt(
+    workId: string,
+    path: string,
+    alt: string,
+  ): void {
+    setContent((current) => ({
+      ...current,
+      careerWorks: current.careerWorks.map((work) =>
+        work.id === workId
+          ? {
+              ...work,
+              images: work.images?.map((image) =>
+                image.path === path ? { ...image, alt } : image,
+              ),
+            }
+          : work,
+      ),
+    }));
+  }
+
+  function removeCareerWorkImage(workId: string, path: string): void {
+    setContent((current) => ({
+      ...current,
+      careerWorks: current.careerWorks.map((work) => {
+        if (work.id !== workId) return work;
+
+        const images = work.images?.filter((image) => image.path !== path);
+        return { ...work, images: images && images.length > 0 ? images : undefined };
+      }),
+    }));
+    setAssetMessage("스크린샷을 제거했습니다. 저장 후 파일이 정리됩니다.");
   }
 
   function removeSectionImage(sectionId: PortfolioSectionId): void {
@@ -1428,6 +1574,70 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                   }
                   value={work.technologies?.join("\n") ?? ""}
                 />
+              </div>
+              <div className="admin-career-work-images">
+                <div className="admin-career-work-images-heading">
+                  <div>
+                    <strong>작업 스크린샷</strong>
+                    <p>JPEG, PNG, WebP, AVIF · 파일당 5MB · 최대 8장</p>
+                  </div>
+                  <span>{work.images?.length ?? 0}/8</span>
+                </div>
+                <label className="admin-field">
+                  <span>이미지 첨부</span>
+                  <input
+                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    aria-label={`${work.title} 작업 스크린샷 첨부`}
+                    disabled={uploadingCareerWorkId !== null}
+                    multiple
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files ?? []);
+                      event.target.value = "";
+                      void uploadCareerWorkImages(work.id, files);
+                    }}
+                    type="file"
+                  />
+                </label>
+                {work.images && work.images.length > 0 ? (
+                  <div className="admin-career-work-image-grid">
+                    {work.images.map((image, imageIndex) => (
+                      <div className="admin-career-work-image" key={image.path}>
+                        <div className="admin-career-work-image-preview">
+                          <Image
+                            alt={image.alt}
+                            fill
+                            sizes="(max-width: 720px) 100vw, 220px"
+                            src={image.url}
+                          />
+                        </div>
+                        <label className="admin-field">
+                          <span>대체 텍스트 {imageIndex + 1}</span>
+                          <input
+                            maxLength={160}
+                            onChange={(event) =>
+                              updateCareerWorkImageAlt(
+                                work.id,
+                                image.path,
+                                event.target.value,
+                              )
+                            }
+                            type="text"
+                            value={image.alt}
+                          />
+                        </label>
+                        <button
+                          className="admin-remove-button"
+                          onClick={() =>
+                            removeCareerWorkImage(work.id, image.path)
+                          }
+                          type="button"
+                        >
+                          스크린샷 삭제
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <button
                 className="admin-remove-button"

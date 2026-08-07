@@ -14,14 +14,23 @@ import { createAuthenticatedServerSupabaseClient } from "@/lib/supabase/auth-ser
 
 const serializedContentSchema = z.string().min(2).max(512_000);
 
+function collectPortfolioAssets(
+  content: PortfolioDocumentContent,
+): ReadonlyArray<{ readonly path: string; readonly url: string }> {
+  const backgroundImages = Object.values(content.visuals.sections)
+    .map((visual) => visual.backgroundImage)
+    .filter((image): image is NonNullable<typeof image> => image !== null);
+  const careerWorkImages = content.careerWorks.flatMap(
+    (work) => work.images ?? [],
+  );
+
+  return [...backgroundImages, ...careerWorkImages];
+}
+
 function collectPortfolioAssetPaths(
   content: PortfolioDocumentContent,
 ): Set<string> {
-  return new Set(
-    Object.values(content.visuals.sections)
-      .map((visual) => visual.backgroundImage?.path)
-      .filter((path): path is string => path !== undefined),
-  );
+  return new Set(collectPortfolioAssets(content).map((image) => image.path));
 }
 
 /**
@@ -68,11 +77,7 @@ export async function savePortfolioAction(
     };
   }
 
-  for (const visual of Object.values(contentResult.data.visuals.sections)) {
-    const image = visual.backgroundImage;
-
-    if (!image) continue;
-
+  for (const image of collectPortfolioAssets(contentResult.data)) {
     const expectedUrl = access.supabase.storage
       .from("portfolio-assets")
       .getPublicUrl(image.path).data.publicUrl;

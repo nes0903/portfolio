@@ -157,4 +157,52 @@ describe("portfolio visual schema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("경력 작업에 소유자 범위의 스크린샷을 최대 8장까지 허용한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const firstWork = content.careerWorks[0];
+    if (!firstWork) throw new Error("경력 작업 fixture가 필요합니다");
+
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      careerWorks: [
+        {
+          ...firstWork,
+          images: [
+            {
+              alt: "관리자 작업 화면",
+              path: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+              url: "https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+            },
+          ],
+        },
+        ...content.careerWorks.slice(1),
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("경력 작업의 9번째 이미지와 소유자 범위 밖 경로를 거부한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const firstWork = content.careerWorks[0];
+    if (!firstWork) throw new Error("경력 작업 fixture가 필요합니다");
+
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      careerWorks: [
+        {
+          ...firstWork,
+          images: Array.from({ length: 9 }, (_, index) => ({
+            alt: `작업 화면 ${index + 1}`,
+            path: `shared/${index}.webp`,
+            url: `https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/shared/${index}.webp`,
+          })),
+        },
+        ...content.careerWorks.slice(1),
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
 });

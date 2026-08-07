@@ -11,6 +11,21 @@ const frontRoot = fileURLToPath(new URL(".", import.meta.url));
  * Vercel의 Next.js 런타임에서 Server Component가 Supabase를 조회한다.
  */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/portfolio-assets/**",
+        protocol: "https",
+      },
+      {
+        hostname: "127.0.0.1",
+        pathname: "/storage/v1/object/public/portfolio-assets/**",
+        port: "54321",
+        protocol: "http",
+      },
+    ],
+  },
   turbopack: {
     root: frontRoot,
   },

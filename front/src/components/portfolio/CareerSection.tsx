@@ -4,6 +4,7 @@ import {
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
+import { CareerWorkImages } from "@/components/portfolio/CareerWorkImages";
 import type {
   CareerWithWorks,
   PortfolioSectionVisual,
@@ -144,6 +145,12 @@ export function CareerSection({
                           )}
                         </section>
                       </div>
+                      {work.images && work.images.length > 0 ? (
+                        <CareerWorkImages
+                          images={work.images}
+                          title={work.title}
+                        />
+                      ) : null}
                     </details>
                   ))}
                 </div>
