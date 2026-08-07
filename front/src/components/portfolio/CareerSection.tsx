@@ -91,16 +91,6 @@ export function CareerSection({
                       </summary>
                       <div className="evidence">
                         <section>
-                          <h4>Context</h4>
-                          {career.summary ? (
-                            <p>{career.summary}</p>
-                          ) : (
-                            <p className="optional">
-                              승인된 맥락 정보가 없습니다.
-                            </p>
-                          )}
-                        </section>
-                        <section>
                           <h4>Action</h4>
                           <p
                             {...createEditableTextProps(

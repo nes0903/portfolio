@@ -147,7 +147,7 @@ describe("CareerSection", () => {
     }
   });
 
-  it("각 work details를 exact 4개 evidence section과 승인 데이터/optional 문구로 매핑한다", () => {
+  it("각 work details를 3개 evidence section과 승인 데이터/optional 문구로 매핑한다", () => {
     render(<CareerSection careers={careers} />);
 
     for (const career of careers) {
@@ -159,24 +159,17 @@ describe("CareerSection", () => {
           ...details.querySelectorAll<HTMLElement>(":scope > .evidence > section"),
         ];
 
-        expect(evidenceSections).toHaveLength(4);
+        expect(evidenceSections).toHaveLength(3);
         expect(
           evidenceSections.map(
             (section) =>
               within(section).getByRole("heading", { level: 4 }).textContent,
           ),
-        ).toEqual(["Context", "Action", "Verified Outcome", "Tech"]);
+        ).toEqual(["Action", "Verified Outcome", "Tech"]);
 
-        const [context, action, outcome, tech] = evidenceSections;
-        if (!context || !action || !outcome || !tech) {
-          throw new Error("evidence section 네 개가 필요합니다");
-        }
-        if (career.summary) {
-          expect(within(context).getByText(career.summary)).toBeInTheDocument();
-        } else {
-          expect(
-            within(context).getByText("승인된 맥락 정보가 없습니다."),
-          ).toBeInTheDocument();
+        const [action, outcome, tech] = evidenceSections;
+        if (!action || !outcome || !tech) {
+          throw new Error("evidence section 세 개가 필요합니다");
         }
         expect(within(action).getByText(work.description)).toBeInTheDocument();
 

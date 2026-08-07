@@ -906,7 +906,7 @@ details[open] summary::after {
 
 .evidence {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   padding: 0 0 28px;
   background: #36363b;
