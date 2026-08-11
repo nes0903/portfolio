@@ -9,6 +9,7 @@ import type {
   introductionTextBlockSchema,
   portfolioBackgroundImageSchema,
   portfolioCareerWorkImageSchema,
+  portfolioProjectImageSchema,
   portfolioSectionVisualSchema,
   portfolioVisualsSchema,
   sideProjectItemSchema,
@@ -37,6 +38,9 @@ export type PortfolioBackgroundImage = DeepReadonly<
 >;
 export type PortfolioCareerWorkImage = DeepReadonly<
   z.infer<typeof portfolioCareerWorkImageSchema>
+>;
+export type PortfolioProjectImage = DeepReadonly<
+  z.infer<typeof portfolioProjectImageSchema>
 >;
 export type IntroductionTextBlock = DeepReadonly<
   z.infer<typeof introductionTextBlockSchema>

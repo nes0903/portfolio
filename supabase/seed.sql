@@ -50,8 +50,12 @@ values (
       {
         "id": "verified-static-portfolio",
         "name": "Verified Static Portfolio",
+        "period": "2026",
         "description": "공개 가능한 가상 JSON을 검증해 정적 페이지로 제공하는 예시 프로젝트입니다.",
-        "role": "Creator",
+        "highlights": [
+          "구조화된 포트폴리오 콘텐츠를 공개 전에 검증합니다."
+        ],
+        "images": [],
         "skills": [
           "TypeScript"
         ],

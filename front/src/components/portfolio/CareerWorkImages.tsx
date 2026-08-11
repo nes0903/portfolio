@@ -4,10 +4,16 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import type { PortfolioCareerWorkImage } from "@/lib/content/types";
+interface PortfolioGalleryImage {
+  readonly alt: string;
+  readonly path: string;
+  readonly url: string;
+}
 
-interface CareerWorkImagesProps {
-  readonly images: readonly PortfolioCareerWorkImage[];
+interface PortfolioImageGalleryProps {
+  readonly contextLabel: "작업" | "프로젝트";
+  readonly heading: string;
+  readonly images: readonly PortfolioGalleryImage[];
   readonly title: string;
 }
 
@@ -18,7 +24,12 @@ function wrapIndex(index: number, length: number): number {
 /**
  * 경력 작업 썸네일과 중앙 확대 뷰어를 렌더링한다.
  */
-export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
+export function PortfolioImageGallery({
+  contextLabel,
+  heading,
+  images,
+  title,
+}: PortfolioImageGalleryProps) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -105,7 +116,7 @@ export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
             }}
           >
             <section
-              aria-label={`${title} 작업 이미지 뷰어`}
+              aria-label={`${title} ${contextLabel} 이미지 뷰어`}
               aria-modal="true"
               className="career-image-modal"
               role="dialog"
@@ -126,7 +137,7 @@ export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
               >
                 {imageCount > 1 ? (
                   <button
-                    aria-label="이전 작업 이미지"
+                    aria-label={`이전 ${contextLabel} 이미지`}
                     className="career-image-modal-arrow"
                     onClick={() => moveViewer(-1)}
                     type="button"
@@ -144,7 +155,7 @@ export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
                 </div>
                 {imageCount > 1 ? (
                   <button
-                    aria-label="다음 작업 이미지"
+                    aria-label={`다음 ${contextLabel} 이미지`}
                     className="career-image-modal-arrow"
                     onClick={() => moveViewer(1)}
                     type="button"
@@ -168,8 +179,11 @@ export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
 
   return (
     <>
-      <section aria-label={`${title} 작업 스크린샷`} className="career-work-media">
-        <h4>Work Screenshots</h4>
+      <section
+        aria-label={`${title} ${contextLabel} 스크린샷`}
+        className="career-work-media"
+      >
+        <h4>{heading}</h4>
         <div className="career-work-gallery">
           {images.map((image, index) => (
             <figure key={image.path}>
@@ -193,5 +207,21 @@ export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
       </section>
       {viewer}
     </>
+  );
+}
+
+interface CareerWorkImagesProps {
+  readonly images: readonly PortfolioGalleryImage[];
+  readonly title: string;
+}
+
+export function CareerWorkImages({ images, title }: CareerWorkImagesProps) {
+  return (
+    <PortfolioImageGallery
+      contextLabel="작업"
+      heading="Work Screenshots"
+      images={images}
+      title={title}
+    />
   );
 }

@@ -20,12 +20,28 @@ const contacts: readonly Contact[] = [
     order: 1,
   },
   {
+    id: "phone",
+    channel: "phone",
+    label: "Phone",
+    value: "010-2261-0439",
+    url: "tel:01022610439",
+    order: 2,
+  },
+  {
     id: "github",
     channel: "github",
     label: "GitHub",
     value: "example",
     url: "https://github.com/example",
-    order: 2,
+    order: 3,
+  },
+  {
+    id: "github-work",
+    channel: "github",
+    label: "GitHub Work",
+    value: "NohYusung",
+    url: "https://github.com/NohYusung",
+    order: 4,
   },
   {
     id: "linkedin",
@@ -33,7 +49,7 @@ const contacts: readonly Contact[] = [
     label: "LinkedIn",
     value: "Example Person",
     url: "https://www.linkedin.com/in/example",
-    order: 3,
+    order: 5,
   },
   {
     id: "blog",
@@ -41,7 +57,7 @@ const contacts: readonly Contact[] = [
     label: "Blog",
     value: "Engineering Notes",
     url: "https://blog.example.com",
-    order: 4,
+    order: 6,
   },
   {
     id: "website",
@@ -49,7 +65,7 @@ const contacts: readonly Contact[] = [
     label: "Website",
     value: "example.com",
     url: "https://example.com",
-    order: 5,
+    order: 7,
   },
 ];
 
@@ -72,7 +88,10 @@ describe("ContactSection", () => {
       items.map((item) => within(item).getByRole("link").getAttribute("aria-label")),
     ).toEqual(
       externalContacts.map(
-        (contact) => `${contact.label}: ${contact.value} (새 창)`,
+        (contact) =>
+          contact.channel === "phone"
+            ? `${contact.label}: ${contact.value}`
+            : `${contact.label}: ${contact.value} (새 창)`,
       ),
     );
 
@@ -126,8 +145,16 @@ describe("ContactSection", () => {
     );
     expect(screen.queryByText("[EMAIL]")).not.toBeInTheDocument();
 
+    const phoneLink = screen.getByRole("link", {
+      name: "Phone: 010-2261-0439",
+    });
+    expect(phoneLink).toHaveAttribute("href", "tel:01022610439");
+    expect(phoneLink).not.toHaveAttribute("target");
+    expect(phoneLink).not.toHaveAttribute("rel");
+
     for (const contact of contacts.filter(
-      (candidate) => candidate.channel !== "email",
+      (candidate) =>
+        candidate.channel !== "email" && candidate.channel !== "phone",
     )) {
       const link = screen.getByRole("link", {
         name: `${contact.label}: ${contact.value} (새 창)`,
@@ -140,13 +167,12 @@ describe("ContactSection", () => {
     }
   });
 
-  it("요구되지 않은 문의 form, 전화, 주소, token UI를 생성하지 않는다", () => {
+  it("전화 링크는 표시하지만 문의 form, 주소, token UI는 생성하지 않는다", () => {
     const { container } = render(<ContactSection contacts={contacts} />);
 
     expect(container.querySelector("form, input, textarea, select")).toBeNull();
-    expect(container).not.toHaveTextContent(
-      /전화|전화번호|phone|주소|address|token|api[ -]?key/i,
-    );
+    expect(screen.getByRole("link", { name: "Phone: 010-2261-0439" })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(/주소|address|token|api[ -]?key/i);
   });
 
   it("빈 배열도 contact panel, [EMAIL], disabled action과 idle live status를 유지한다", () => {

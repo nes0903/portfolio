@@ -23,6 +23,7 @@ describe("admin authorization boundary", () => {
     expect(source).toMatch(/\.eq\("owner_id", access\.userId\)/);
     expect(source).toMatch(/revalidatePath\("\/"\)/);
     expect(source).toMatch(/revalidatePath\("\/admin"\)/);
+    expect(source).toMatch(/content\.sideProjects\.flatMap/);
   });
 
   it("proxy가 관리자 경로만 대상으로 세션을 갱신한다", async () => {

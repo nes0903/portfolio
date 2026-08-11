@@ -205,4 +205,50 @@ describe("portfolio visual schema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("프로젝트에 소유자 범위의 스크린샷을 최대 8장까지 허용한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const firstProject = content.sideProjects[0];
+    if (!firstProject) throw new Error("프로젝트 fixture가 필요합니다");
+
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      sideProjects: [
+        {
+          ...firstProject,
+          images: Array.from({ length: 8 }, (_, index) => ({
+            alt: `프로젝트 화면 ${index + 1}`,
+            path: `11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-2222222222${String(index).padStart(2, "0")}.webp`,
+            url: `https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-2222222222${String(index).padStart(2, "0")}.webp`,
+          })),
+        },
+        ...content.sideProjects.slice(1),
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("프로젝트의 9번째 이미지를 거부한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const firstProject = content.sideProjects[0];
+    if (!firstProject) throw new Error("프로젝트 fixture가 필요합니다");
+
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      sideProjects: [
+        {
+          ...firstProject,
+          images: Array.from({ length: 9 }, (_, index) => ({
+            alt: `프로젝트 화면 ${index + 1}`,
+            path: `11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-3333333333${String(index).padStart(2, "0")}.webp`,
+            url: `https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-3333333333${String(index).padStart(2, "0")}.webp`,
+          })),
+        },
+        ...content.sideProjects.slice(1),
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
 });

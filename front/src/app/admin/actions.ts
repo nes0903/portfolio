@@ -23,8 +23,11 @@ function collectPortfolioAssets(
   const careerWorkImages = content.careerWorks.flatMap(
     (work) => work.images ?? [],
   );
+  const projectImages = content.sideProjects.flatMap(
+    (project) => project.images,
+  );
 
-  return [...backgroundImages, ...careerWorkImages];
+  return [...backgroundImages, ...careerWorkImages, ...projectImages];
 }
 
 function collectPortfolioAssetPaths(

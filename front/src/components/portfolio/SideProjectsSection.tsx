@@ -8,6 +8,7 @@ import {
   type PortfolioEditorBridge,
 } from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
+import { PortfolioImageGallery } from "@/components/portfolio/CareerWorkImages";
 import type { PortfolioSectionVisual, SideProject } from "@/lib/content/types";
 import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
 
@@ -45,15 +46,17 @@ export function SideProjectsSection({
 
             return (
               <article className="card project" key={project.id}>
-                <p
-                  className="eyebrow"
-                  {...createEditableTextProps(
-                    editor,
-                    `sideProjects:${project.id}:role`,
-                  )}
-                >
-                  <FormattedText text={project.role} />
-                </p>
+                {project.period ? (
+                  <p
+                    className="eyebrow"
+                    {...createEditableTextProps(
+                      editor,
+                      `sideProjects:${project.id}:period`,
+                    )}
+                  >
+                    <FormattedText text={project.period} />
+                  </p>
+                ) : null}
                 <h3
                   {...createEditableTextProps(
                     editor,
@@ -70,6 +73,24 @@ export function SideProjectsSection({
                 >
                   <FormattedText text={project.description} />
                 </p>
+                {project.highlights.length > 0 ? (
+                  <ul
+                    aria-label={`${stripInlineFormatting(project.name)} 상세 작업`}
+                    className="project-highlights"
+                  >
+                    {project.highlights.map((highlight, highlightIndex) => (
+                      <li
+                        key={`${highlight}-${highlightIndex}`}
+                        {...createEditableTextProps(
+                          editor,
+                          `sideProjectHighlights:${project.id}:${highlightIndex}`,
+                        )}
+                      >
+                        <FormattedText text={highlight} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <ul
                   className="chips"
                   aria-label={`${stripInlineFormatting(project.name)} 기술`}
@@ -87,6 +108,15 @@ export function SideProjectsSection({
                     </li>
                   ))}
                 </ul>
+
+                {project.images.length > 0 ? (
+                  <PortfolioImageGallery
+                    contextLabel="프로젝트"
+                    heading="Project Screenshots"
+                    images={project.images}
+                    title={stripInlineFormatting(project.name)}
+                  />
+                ) : null}
 
                 <details>
                   <summary>프로젝트 근거 보기</summary>

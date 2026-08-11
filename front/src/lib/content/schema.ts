@@ -183,6 +183,11 @@ export const portfolioCareerWorkImageSchema = z
   })
   .strict();
 
+/**
+ * 프로젝트에 첨부하는 공개 스크린샷은 경력 작업 이미지와 동일한 계약을 사용한다.
+ */
+export const portfolioProjectImageSchema = portfolioCareerWorkImageSchema;
+
 export const portfolioSectionVisualSchema = z
   .object({
     accentColor: hexColorSchema.default(DEFAULT_SECTION_VISUAL.accentColor),
@@ -657,17 +662,33 @@ const sideProjectLinksSchema = z
 /**
  * 프로젝트 항목 계약.
  */
-export const sideProjectItemSchema = z
+const currentSideProjectItemSchema = z
   .object({
     id: nonBlankStringSchema,
     name: nonBlankStringSchema,
+    period: nonBlankStringSchema.max(80).optional(),
     description: nonBlankStringSchema,
-    role: nonBlankStringSchema,
+    highlights: z.array(nonBlankStringSchema).default([]),
+    images: z.array(portfolioProjectImageSchema).max(8).default([]),
     skills: z.array(nonBlankStringSchema),
     links: sideProjectLinksSchema,
     order: z.number().int().min(0),
   })
   .strict();
+
+/**
+ * 배포된 구형 문서의 프로젝트 role을 읽기 단계에서 제거한다.
+ * 다음 관리자 저장부터는 role이 없는 현재 계약으로 영구 정리된다.
+ */
+export const sideProjectItemSchema = z.preprocess((value) => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+
+  const project = { ...(value as Record<string, unknown>) };
+  delete project.role;
+  return project;
+}, currentSideProjectItemSchema);
 
 /**
  * 프로젝트 JSON 배열 계약.
@@ -682,11 +703,33 @@ export const sideProjectsSchema = z
  */
 const contactChannelSchema = z.enum([
   "email",
+  "phone",
   "github",
   "linkedin",
   "blog",
   "website",
 ]);
+
+/**
+ * 사람이 읽는 전화번호를 tel 링크에서 사용할 수 있는 dial string으로 변환한다.
+ */
+export function createPhoneTelUrl(value: string): string | null {
+  const compact = value.replace(/[\s().-]/g, "");
+
+  if (!/^\+?\d{8,15}$/.test(compact)) {
+    return null;
+  }
+
+  return `tel:${compact}`;
+}
+
+const telUrlSchema = z.string().refine(
+  (value) => {
+    if (!value.startsWith("tel:")) return false;
+    return createPhoneTelUrl(value.slice("tel:".length)) === value;
+  },
+  { message: "Expected a normalized tel URL" },
+);
 
 /**
  * 연락 채널과 표시 값, URL protocol의 의미 관계를 검증한다.
@@ -731,6 +774,29 @@ function validateContactRelationship(
     return;
   }
 
+  if (contact.channel === "phone") {
+    const expectedUrl = createPhoneTelUrl(contact.value);
+
+    if (!expectedUrl) {
+      context.addIssue({
+        code: "custom",
+        message: "Phone contact value must contain 8 to 15 dialable digits",
+        path: ["value"],
+      });
+      return;
+    }
+
+    if (contact.url !== expectedUrl) {
+      context.addIssue({
+        code: "custom",
+        message: "Phone contact URL must match the normalized contact value",
+        path: ["url"],
+      });
+    }
+
+    return;
+  }
+
   /**
    * 외부 프로필 채널은 mailto를 허용하지 않고 HTTPS URL만 허용한다.
    */
@@ -752,7 +818,7 @@ export const contactItemSchema = z
     channel: contactChannelSchema,
     label: nonBlankStringSchema,
     value: nonBlankStringSchema,
-    url: z.union([mailtoUrlSchema, httpsUrlSchema]),
+    url: z.union([mailtoUrlSchema, telUrlSchema, httpsUrlSchema]),
     order: z.number().int().min(0),
   })
   .strict()
@@ -771,6 +837,8 @@ export const contactsSchema = z
      * 화면에서 채널별 항목이 유실되지 않도록 한 채널은 한 번만 허용한다.
      */
     items.forEach((item, index) => {
+      if (item.channel === "github") return;
+
       const firstIndex = channels.get(item.channel);
 
       if (firstIndex !== undefined) {

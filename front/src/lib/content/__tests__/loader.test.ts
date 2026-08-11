@@ -130,8 +130,10 @@ describe("loadPortfolioContent", () => {
         {
           id: "first-project",
           name: "First project",
+          period: "2026",
           description: "첫 번째 프로젝트",
-          role: "Creator",
+          highlights: ["첫 번째 프로젝트 상세 작업"],
+          images: [],
           skills: ["TypeScript", "Next.js"],
           links: { repository: "https://github.com/example/portfolio" },
           order: 1,
@@ -139,8 +141,10 @@ describe("loadPortfolioContent", () => {
         {
           id: "second-project",
           name: "Second project",
+          period: "2025-07~",
           description: "두 번째 프로젝트",
-          role: "Maintainer",
+          highlights: ["두 번째 프로젝트 상세 작업"],
+          images: [],
           skills: ["React"],
           links: { demo: "https://example.com/demo" },
           order: 2,
@@ -540,7 +544,7 @@ describe("loadPortfolioContent", () => {
     await expect(loadPortfolioContent(fixture.backendDirectory)).rejects.toThrow();
   });
 
-  it.each(["id", "name", "description", "role"] as const)(
+  it.each(["id", "name", "period", "description"] as const)(
     "side-project.%s가 whitespace-only이면 build-time 검증에 실패한다",
     async (field) => {
       const files = createValidContentFiles();
@@ -578,6 +582,30 @@ describe("loadPortfolioContent", () => {
     const fixture = await createFixture(files);
 
     await expect(loadPortfolioContent(fixture.backendDirectory)).rejects.toThrow();
+  });
+
+  it("구형 side-project role을 제거하고 새 배열 필드의 기본값을 채운다", async () => {
+    const files = createValidContentFiles();
+    const [project] = files["side-project.json"];
+    if (!project) throw new Error("fixture side-project가 필요합니다");
+    files["side-project.json"] = [
+      {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        role: "Legacy role",
+        skills: project.skills,
+        links: project.links,
+        order: project.order,
+      } as unknown as typeof project,
+    ];
+    const fixture = await createFixture(files);
+
+    const content = await loadPortfolioContent(fixture.backendDirectory);
+    const [parsedProject] = content.sideProjects;
+
+    expect(parsedProject).not.toHaveProperty("role");
+    expect(parsedProject).toMatchObject({ highlights: [], images: [] });
   });
 
   it.each(["id", "label", "value"] as const)(
@@ -654,6 +682,82 @@ describe("loadPortfolioContent", () => {
       url: "mailto:secondary@example.com",
       order: 99,
     });
+    const fixture = await createFixture(files);
+
+    await expect(loadPortfolioContent(fixture.backendDirectory)).rejects.toThrow();
+  });
+
+  it("github channel 여러 개와 정규화된 전화번호를 허용한다", async () => {
+    const files = createValidContentFiles();
+    files["contact.json"].push(
+      {
+        id: "secondary-github",
+        channel: "github",
+        label: "GitHub Work",
+        value: "NohYusung",
+        url: "https://github.com/NohYusung",
+        order: 3,
+      },
+      {
+        id: "phone",
+        channel: "phone",
+        label: "Phone",
+        value: "010-2261-0439",
+        url: "tel:01022610439",
+        order: 4,
+      },
+    );
+    const fixture = await createFixture(files);
+
+    const content = await loadPortfolioContent(fixture.backendDirectory);
+
+    expect(
+      content.contacts.filter((contact) => contact.channel === "github"),
+    ).toHaveLength(2);
+    expect(content.contacts.find((contact) => contact.channel === "phone"))
+      .toMatchObject({ url: "tel:01022610439" });
+  });
+
+  it.each([
+    ["잘못된 표시 값", "phone", "12-34", "tel:1234"],
+    ["표시 값과 다른 URL", "phone", "010-2261-0439", "tel:01099999999"],
+  ] as const)("phone contact의 %s을 거부한다", async (_label, channel, value, url) => {
+    const files = createValidContentFiles();
+    files["contact.json"] = [
+      {
+        id: "phone",
+        channel,
+        label: "Phone",
+        value,
+        url,
+        order: 1,
+      },
+    ];
+    const fixture = await createFixture(files);
+
+    await expect(loadPortfolioContent(fixture.backendDirectory)).rejects.toThrow();
+  });
+
+  it("phone channel이 둘 이상이면 거부한다", async () => {
+    const files = createValidContentFiles();
+    files["contact.json"] = [
+      {
+        id: "phone-primary",
+        channel: "phone",
+        label: "Phone",
+        value: "010-2261-0439",
+        url: "tel:01022610439",
+        order: 1,
+      },
+      {
+        id: "phone-secondary",
+        channel: "phone",
+        label: "Phone 2",
+        value: "010-9999-9999",
+        url: "tel:01099999999",
+        order: 2,
+      },
+    ];
     const fixture = await createFixture(files);
 
     await expect(loadPortfolioContent(fixture.backendDirectory)).rejects.toThrow();

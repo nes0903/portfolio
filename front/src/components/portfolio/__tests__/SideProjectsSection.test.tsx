@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { SideProjectsSection } from "@/components/portfolio/SideProjectsSection";
@@ -14,8 +14,10 @@ const sideProjects: readonly SideProject[] = [
   {
     id: "first-project",
     name: "First Project",
+    period: "2026",
     description: "첫 번째 프로젝트 설명",
-    role: "Creator",
+    highlights: ["첫 번째 상세 작업", "두 번째 상세 작업"],
+    images: [],
     skills: ["TypeScript", "Next.js"],
     links: {
       repository: "https://github.com/example/first-project",
@@ -26,8 +28,10 @@ const sideProjects: readonly SideProject[] = [
   {
     id: "second-project",
     name: "Second Project",
+    period: "2025-07~",
     description: "두 번째 프로젝트 설명",
-    role: "Maintainer",
+    highlights: [],
+    images: [],
     skills: ["React"],
     links: {},
     order: 2,
@@ -36,7 +40,8 @@ const sideProjects: readonly SideProject[] = [
     id: "third-project",
     name: "Third Project",
     description: "세 번째 프로젝트 설명",
-    role: "Contributor",
+    highlights: ["세 번째 상세 작업"],
+    images: [],
     skills: ["Node.js"],
     links: { demo: "https://third-project.example.com" },
     order: 3,
@@ -69,7 +74,18 @@ describe("SideProjectsSection", () => {
       const project = sideProjects[index];
       if (!project) throw new Error("side-project fixture가 필요합니다");
       expect(within(card).getByText(project.description)).toBeInTheDocument();
-      expect(within(card).getByText(project.role)).toBeInTheDocument();
+      if (project.period) {
+        expect(within(card).getByText(project.period)).toBeInTheDocument();
+      }
+
+      if (project.highlights.length > 0) {
+        const highlights = within(card).getByRole("list", {
+          name: `${project.name} 상세 작업`,
+        });
+        expect(
+          within(highlights).getAllByRole("listitem").map((item) => item.textContent),
+        ).toEqual(project.highlights);
+      }
 
       const skills = within(card).getByRole("list", {
         name: `${project.name} 기술`,
@@ -93,6 +109,40 @@ describe("SideProjectsSection", () => {
       expect(screen.getAllByText(project.name)).toHaveLength(1);
     }
     expect(container.querySelector("img, picture")).toBeNull();
+  });
+
+  it("프로젝트 이미지를 갤러리와 좌우 이동 가능한 modal로 표시한다", () => {
+    const projectWithImages: SideProject = {
+      ...sideProjects[0]!,
+      images: [
+        {
+          alt: "첫 번째 화면",
+          path: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+          url: "https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+        },
+        {
+          alt: "두 번째 화면",
+          path: "11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-333333333333.webp",
+          url: "https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-333333333333.webp",
+        },
+      ],
+    };
+
+    render(<SideProjectsSection sideProjects={[projectWithImages]} />);
+    fireEvent.click(screen.getByRole("button", { name: "첫 번째 화면 크게 보기" }));
+
+    const dialog = screen.getByRole("dialog", {
+      name: "First Project 프로젝트 이미지 뷰어",
+    });
+    expect(within(dialog).getByText("첫 번째 화면")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "다음 프로젝트 이미지" }),
+    );
+    expect(within(dialog).getByText("두 번째 화면")).toBeInTheDocument();
+
+    fireEvent.click(dialog.parentElement!);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("제공된 repository/demo만 안전한 HTTPS external link로 렌더링한다", () => {

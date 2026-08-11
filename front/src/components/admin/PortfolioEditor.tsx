@@ -14,6 +14,10 @@ import type { IntroductionTextBlockLayoutPatch } from "@/components/portfolio/ed
 import { initialAdminFormState } from "@/lib/auth/form-state";
 import { normalizePortfolioContentForSave } from "@/lib/content/admin-form";
 import {
+  PORTFOLIO_IMAGE_EXTENSIONS,
+  validatePortfolioGalleryImageFiles,
+} from "@/lib/content/image-upload";
+import {
   INTRODUCTION_VERTICAL_INPUT_STEP_PX,
   INTRODUCTION_MAX_VERTICAL_UNITS,
   INTRODUCTION_MIN_HEIGHT_UNITS,
@@ -23,6 +27,7 @@ import {
   createPortfolioContentViewModel,
   type PortfolioDocumentContent,
 } from "@/lib/content/model";
+import { createPhoneTelUrl } from "@/lib/content/schema";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 interface PortfolioEditorProps {
@@ -32,6 +37,7 @@ interface PortfolioEditorProps {
 type CareerWorkImage = NonNullable<
   PortfolioDocumentContent["careerWorks"][number]["images"]
 >[number];
+type ProjectImage = PortfolioDocumentContent["sideProjects"][number]["images"][number];
 
 interface PreviewTextBlockRectangle {
   readonly height: number;
@@ -193,12 +199,7 @@ const SECTION_LABELS: Readonly<Record<PortfolioSectionId, string>> = {
   contact: "연락처",
 };
 
-const IMAGE_EXTENSIONS: Readonly<Record<string, string>> = {
-  "image/avif": "avif",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
+const IMAGE_EXTENSIONS = PORTFOLIO_IMAGE_EXTENSIONS;
 
 interface ColorFieldProps {
   readonly label: string;
@@ -587,6 +588,9 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   const [uploadingCareerWorkId, setUploadingCareerWorkId] = useState<
     string | null
   >(null);
+  const [uploadingProjectId, setUploadingProjectId] = useState<string | null>(
+    null,
+  );
   const [uploadingSection, setUploadingSection] =
     useState<PortfolioSectionId | null>(null);
   const [state, formAction] = useActionState(
@@ -817,24 +821,15 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
     if (!work || files.length === 0) return;
 
     const currentImages = work.images ?? [];
+    const validationMessage = validatePortfolioGalleryImageFiles(
+      currentImages.length,
+      files,
+      "작업 스크린샷",
+    );
 
-    if (currentImages.length + files.length > 8) {
-      setAssetMessage(
-        `작업 스크린샷은 최대 8장까지 등록할 수 있습니다. (현재 ${currentImages.length}장)`,
-      );
+    if (validationMessage) {
+      setAssetMessage(validationMessage);
       return;
-    }
-
-    for (const file of files) {
-      if (!IMAGE_EXTENSIONS[file.type]) {
-        setAssetMessage("JPEG, PNG, WebP, AVIF 이미지만 업로드할 수 있습니다.");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        setAssetMessage("이미지는 파일당 5MB 이하여야 합니다.");
-        return;
-      }
     }
 
     setUploadingCareerWorkId(workId);
@@ -944,6 +939,133 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       }),
     }));
     setAssetMessage("스크린샷을 제거했습니다. 저장 후 파일이 정리됩니다.");
+  }
+
+  async function uploadProjectImages(
+    projectId: string,
+    files: readonly File[],
+  ): Promise<void> {
+    const project = content.sideProjects.find((item) => item.id === projectId);
+
+    if (!project || files.length === 0) return;
+
+    const validationMessage = validatePortfolioGalleryImageFiles(
+      project.images.length,
+      files,
+      "프로젝트 스크린샷",
+    );
+
+    if (validationMessage) {
+      setAssetMessage(validationMessage);
+      return;
+    }
+
+    setUploadingProjectId(projectId);
+    setAssetMessage(`${files.length}개 프로젝트 스크린샷을 업로드하고 있습니다.`);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setAssetMessage("로그인 세션을 확인할 수 없습니다.");
+        return;
+      }
+
+      const uploadResults = await Promise.all(
+        files.map(async (file, index) => {
+          const extension = IMAGE_EXTENSIONS[file.type];
+          if (!extension) {
+            return { error: "지원하지 않는 이미지 형식입니다." } as const;
+          }
+
+          const path = `${userData.user.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await supabase.storage
+            .from("portfolio-assets")
+            .upload(path, file, {
+              cacheControl: "3600",
+              contentType: file.type,
+              upsert: false,
+            });
+
+          if (uploadError) {
+            return { error: uploadError.message } as const;
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from("portfolio-assets")
+            .getPublicUrl(path);
+          const image: ProjectImage = {
+            alt: `${project.name} 프로젝트 스크린샷 ${project.images.length + index + 1}`,
+            path,
+            url: publicUrlData.publicUrl,
+          };
+
+          return { image } as const;
+        }),
+      );
+      const uploadedImages = uploadResults.flatMap(
+        (result): ProjectImage[] =>
+          "image" in result && result.image ? [result.image] : [],
+      );
+      const failureCount = uploadResults.length - uploadedImages.length;
+
+      if (uploadedImages.length > 0) {
+        setContent((current) => ({
+          ...current,
+          sideProjects: current.sideProjects.map((item) =>
+            item.id === projectId
+              ? { ...item, images: [...item.images, ...uploadedImages] }
+              : item,
+          ),
+        }));
+      }
+
+      setAssetMessage(
+        failureCount === 0
+          ? `${uploadedImages.length}개 프로젝트 스크린샷을 업로드했습니다. 저장하면 공개 화면에 반영됩니다.`
+          : `${uploadedImages.length}개 업로드, ${failureCount}개 실패했습니다.`,
+      );
+    } catch {
+      setAssetMessage("프로젝트 스크린샷 업로드 중 네트워크 오류가 발생했습니다.");
+    } finally {
+      setUploadingProjectId(null);
+    }
+  }
+
+  function updateProjectImageAlt(
+    projectId: string,
+    path: string,
+    alt: string,
+  ): void {
+    setContent((current) => ({
+      ...current,
+      sideProjects: current.sideProjects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              images: project.images.map((image) =>
+                image.path === path ? { ...image, alt } : image,
+              ),
+            }
+          : project,
+      ),
+    }));
+  }
+
+  function removeProjectImage(projectId: string, path: string): void {
+    setContent((current) => ({
+      ...current,
+      sideProjects: current.sideProjects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              images: project.images.filter((image) => image.path !== path),
+            }
+          : project,
+      ),
+    }));
+    setAssetMessage("프로젝트 스크린샷을 제거했습니다. 저장 후 파일이 정리됩니다.");
   }
 
   function removeSectionImage(sectionId: PortfolioSectionId): void {
@@ -1096,12 +1218,31 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
           sideProjects: current.sideProjects.map((item) => {
             if (item.id !== id) return item;
             if (key === "name") return { ...item, name: normalizedValue };
-            if (key === "role") return { ...item, role: normalizedValue };
+            if (key === "period") return { ...item, period: normalizedValue };
             if (key === "description") {
               return { ...item, description: normalizedValue };
             }
             return item;
           }),
+        };
+      }
+
+      if (collection === "sideProjectHighlights") {
+        const itemIndex = Number(key);
+        if (!Number.isInteger(itemIndex)) return current;
+
+        return {
+          ...current,
+          sideProjects: current.sideProjects.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  highlights: item.highlights.map((highlight, index) =>
+                    index === itemIndex ? normalizedValue : highlight,
+                  ),
+                }
+              : item,
+          ),
         };
       }
 
@@ -1137,7 +1278,9 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                 url:
                   item.channel === "email"
                     ? `mailto:${normalizedValue}`
-                    : item.url,
+                    : item.channel === "phone"
+                      ? createPhoneTelUrl(normalizedValue) ?? item.url
+                      : item.url,
               };
             }
             return item;
@@ -1745,11 +1888,13 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                   ...current.sideProjects,
                   {
                     description: "프로젝트 설명",
+                    highlights: [],
                     id: createContentId("project"),
+                    images: [],
                     links: {},
                     name: "새 프로젝트",
                     order: current.sideProjects.length,
-                    role: "담당 역할",
+                    period: String(new Date().getFullYear()),
                     skills: [],
                   },
                 ],
@@ -1790,16 +1935,19 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                   value={project.name}
                 />
                 <Field
-                  label="역할"
-                  onChange={(role) =>
+                  label="기간"
+                  onChange={(period) =>
                     setContent((current) => ({
                       ...current,
                       sideProjects: current.sideProjects.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, role } : item,
+                        itemIndex === index
+                          ? { ...item, period: period || undefined }
+                          : item,
                       ),
                     }))
                   }
-                  value={project.role}
+                  placeholder="예: 2026 / 2025-07~"
+                  value={project.period ?? ""}
                 />
                 <TextAreaField
                   label="설명"
@@ -1812,6 +1960,22 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                     }))
                   }
                   value={project.description}
+                />
+                <TextAreaField
+                  label="상세 작업 (한 줄에 하나)"
+                  onChange={(value) =>
+                    setContent((current) => ({
+                      ...current,
+                      sideProjects: current.sideProjects.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, highlights: splitLines(value) ?? [] }
+                          : item,
+                      ),
+                    }))
+                  }
+                  placeholder={"첫 번째 상세 작업\n두 번째 상세 작업"}
+                  rows={6}
+                  value={project.highlights.join("\n")}
                 />
                 <Field
                   label="기술 (쉼표로 구분)"
@@ -1860,6 +2024,70 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                   type="url"
                   value={project.links.demo ?? ""}
                 />
+              </div>
+              <div className="admin-career-work-images">
+                <div className="admin-career-work-images-heading">
+                  <div>
+                    <strong>프로젝트 스크린샷</strong>
+                    <p>JPEG, PNG, WebP, AVIF · 파일당 5MB · 최대 8장</p>
+                  </div>
+                  <span>{project.images.length}/8</span>
+                </div>
+                <label className="admin-field">
+                  <span>이미지 첨부</span>
+                  <input
+                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    aria-label={`${project.name} 프로젝트 스크린샷 첨부`}
+                    disabled={uploadingProjectId !== null}
+                    multiple
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files ?? []);
+                      event.target.value = "";
+                      void uploadProjectImages(project.id, files);
+                    }}
+                    type="file"
+                  />
+                </label>
+                {project.images.length > 0 ? (
+                  <div className="admin-career-work-image-grid">
+                    {project.images.map((image, imageIndex) => (
+                      <div className="admin-career-work-image" key={image.path}>
+                        <div className="admin-career-work-image-preview">
+                          <Image
+                            alt={image.alt}
+                            fill
+                            sizes="(max-width: 720px) 100vw, 220px"
+                            src={image.url}
+                          />
+                        </div>
+                        <label className="admin-field">
+                          <span>대체 텍스트 {imageIndex + 1}</span>
+                          <input
+                            maxLength={160}
+                            onChange={(event) =>
+                              updateProjectImageAlt(
+                                project.id,
+                                image.path,
+                                event.target.value,
+                              )
+                            }
+                            type="text"
+                            value={image.alt}
+                          />
+                        </label>
+                        <button
+                          className="admin-remove-button"
+                          onClick={() =>
+                            removeProjectImage(project.id, image.path)
+                          }
+                          type="button"
+                        >
+                          스크린샷 삭제
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <button
                 className="admin-remove-button"
@@ -1933,14 +2161,53 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                       const channel = event.target.value as typeof contact.channel;
                       setContent((current) => ({
                         ...current,
-                        contacts: current.contacts.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, channel } : item,
-                        ),
+                        contacts: current.contacts.map((item, itemIndex) => {
+                          if (itemIndex !== index) return item;
+
+                          if (channel === "phone") {
+                            const value =
+                              item.channel === "phone"
+                                ? item.value
+                                : "010-0000-0000";
+                            return {
+                              ...item,
+                              channel,
+                              label:
+                                item.channel === "phone" ? item.label : "Phone",
+                              url: createPhoneTelUrl(value) ?? "tel:01000000000",
+                              value,
+                            };
+                          }
+
+                          if (channel === "email") {
+                            const value =
+                              item.channel === "email"
+                                ? item.value
+                                : "hello@example.com";
+                            return {
+                              ...item,
+                              channel,
+                              label:
+                                item.channel === "email" ? item.label : "Email",
+                              url: `mailto:${value}`,
+                              value,
+                            };
+                          }
+
+                          return {
+                            ...item,
+                            channel,
+                            url: item.url.startsWith("https://")
+                              ? item.url
+                              : "https://example.com",
+                          };
+                        }),
                       }));
                     }}
                     value={contact.channel}
                   >
                     <option value="email">email</option>
+                    <option value="phone">phone</option>
                     <option value="github">github</option>
                     <option value="linkedin">linkedin</option>
                     <option value="blog">blog</option>
@@ -1964,25 +2231,42 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                   onChange={(value) =>
                     setContent((current) => ({
                       ...current,
-                      contacts: current.contacts.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, value } : item,
-                      ),
+                      contacts: current.contacts.map((item, itemIndex) => {
+                        if (itemIndex !== index) return item;
+                        return {
+                          ...item,
+                          url:
+                            item.channel === "email"
+                              ? `mailto:${value}`
+                              : item.channel === "phone"
+                                ? createPhoneTelUrl(value) ?? item.url
+                                : item.url,
+                          value,
+                        };
+                      }),
                     }))
                   }
                   value={contact.value}
                 />
-                <Field
-                  label="연결 URL"
-                  onChange={(url) =>
-                    setContent((current) => ({
-                      ...current,
-                      contacts: current.contacts.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, url } : item,
-                      ),
-                    }))
-                  }
-                  value={contact.url}
-                />
+                {contact.channel === "phone" ? (
+                  <label className="admin-field">
+                    <span>연결 URL (자동 생성)</span>
+                    <input readOnly type="text" value={contact.url} />
+                  </label>
+                ) : (
+                  <Field
+                    label="연결 URL"
+                    onChange={(url) =>
+                      setContent((current) => ({
+                        ...current,
+                        contacts: current.contacts.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, url } : item,
+                        ),
+                      }))
+                    }
+                    value={contact.url}
+                  />
+                )}
               </div>
               <button
                 className="admin-remove-button"

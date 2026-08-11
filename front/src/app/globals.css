@@ -1226,6 +1226,24 @@ details[open] summary::after {
   font-size: 1.03rem;
 }
 
+.project-highlights {
+  display: grid;
+  gap: 10px;
+  max-width: 68ch;
+  margin: 20px 0 0;
+  padding-left: 1.2rem;
+  color: #c7c5bf;
+}
+
+.project-highlights li {
+  padding-left: 0.35rem;
+  line-height: 1.7;
+}
+
+.project-highlights li::marker {
+  color: var(--signal);
+}
+
 .project details {
   border-color: #414147;
 }

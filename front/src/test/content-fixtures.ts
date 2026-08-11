@@ -49,8 +49,14 @@ export interface CareerWorkFixture {
 export interface SideProjectFixture {
   id: string;
   name: string;
+  period?: string;
   description: string;
-  role: string;
+  highlights: string[];
+  images: Array<{
+    alt: string;
+    path: string;
+    url: string;
+  }>;
   skills: string[];
   links: {
     repository?: string;
@@ -61,7 +67,7 @@ export interface SideProjectFixture {
 
 export interface ContactFixture {
   id: string;
-  channel: "email" | "github" | "linkedin" | "blog" | "website";
+  channel: "email" | "phone" | "github" | "linkedin" | "blog" | "website";
   label: string;
   value: string;
   url: string;
@@ -141,8 +147,10 @@ export function createValidContentFiles(): ContentFiles {
       {
         id: "second-project",
         name: "Second project",
+        period: "2025-07~",
         description: "두 번째 프로젝트",
-        role: "Maintainer",
+        highlights: ["두 번째 프로젝트 상세 작업"],
+        images: [],
         skills: ["React"],
         links: { demo: "https://example.com/demo" },
         order: 2,
@@ -150,8 +158,10 @@ export function createValidContentFiles(): ContentFiles {
       {
         id: "first-project",
         name: "First project",
+        period: "2026",
         description: "첫 번째 프로젝트",
-        role: "Creator",
+        highlights: ["첫 번째 프로젝트 상세 작업"],
+        images: [],
         skills: ["TypeScript", "Next.js"],
         links: { repository: "https://github.com/example/portfolio" },
         order: 1,

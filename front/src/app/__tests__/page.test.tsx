@@ -54,8 +54,10 @@ const populatedContent = {
     {
       id: "project-1",
       name: "Portfolio",
+      period: "2026",
       description: "검증된 JSON 기반 정적 포트폴리오",
-      role: "Creator",
+      highlights: ["공개 전 콘텐츠 검증"],
+      images: [],
       skills: ["Next.js", "TypeScript"],
       links: { repository: "https://github.com/example/portfolio" },
       order: 1,

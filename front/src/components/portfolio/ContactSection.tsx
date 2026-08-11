@@ -95,32 +95,37 @@ export function ContactSection({
 
         {externalContacts.length > 0 ? (
           <ul className="channels" aria-label="연락처">
-            {externalContacts.map((contact) => (
-              <li className="channel" key={contact.id}>
-                <strong
-                  {...createEditableTextProps(
-                    editor,
-                    `contacts:${contact.id}:label`,
-                  )}
-                >
-                  <FormattedText text={contact.label} />
-                </strong>
-                <a
-                  className="contact-value"
-                  href={contact.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`${stripInlineFormatting(contact.label)}: ${stripInlineFormatting(contact.value)} (새 창)`}
-                  {...createEditableTextProps(
-                    editor,
-                    `contacts:${contact.id}:value`,
-                    { richText: false },
-                  )}
-                >
-                  {contact.value}
-                </a>
-              </li>
-            ))}
+            {externalContacts.map((contact) => {
+              const isPhone = contact.channel === "phone";
+              const label = `${stripInlineFormatting(contact.label)}: ${stripInlineFormatting(contact.value)}`;
+
+              return (
+                <li className="channel" key={contact.id}>
+                  <strong
+                    {...createEditableTextProps(
+                      editor,
+                      `contacts:${contact.id}:label`,
+                    )}
+                  >
+                    <FormattedText text={contact.label} />
+                  </strong>
+                  <a
+                    aria-label={isPhone ? label : `${label} (새 창)`}
+                    className="contact-value"
+                    href={contact.url}
+                    rel={isPhone ? undefined : "noopener noreferrer"}
+                    target={isPhone ? undefined : "_blank"}
+                    {...createEditableTextProps(
+                      editor,
+                      `contacts:${contact.id}:value`,
+                      { richText: false },
+                    )}
+                  >
+                    {contact.value}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
       </div>
