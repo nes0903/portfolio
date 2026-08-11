@@ -19,7 +19,7 @@ interface SideProjectsSectionProps {
 }
 
 /**
- * 승인된 프로젝트 필드와 제공된 HTTPS 링크만 native disclosure에 표시한다.
+ * 승인된 프로젝트를 한 번에 하나만 열리는 native disclosure 목록으로 표시한다.
  */
 export function SideProjectsSection({
   editor,
@@ -39,121 +39,128 @@ export function SideProjectsSection({
         <EmptyState>표시할 프로젝트가 없습니다.</EmptyState>
       ) : (
         <div className="projects">
-          {sideProjects.map((project) => {
+          {sideProjects.map((project, projectIndex) => {
             const hasApprovedLink =
               project.links.repository !== undefined ||
               project.links.demo !== undefined;
 
             return (
-              <article className="card project" key={project.id}>
-                {project.period ? (
-                  <p
-                    className="eyebrow"
+              <details
+                className="project"
+                key={project.id}
+                name="side-projects-accordion"
+              >
+                <summary className="project-summary">
+                  <span aria-hidden="true" className="project-index">
+                    {String(projectIndex + 1).padStart(2, "0")}
+                  </span>
+                  <h3
                     {...createEditableTextProps(
                       editor,
-                      `sideProjects:${project.id}:period`,
+                      `sideProjects:${project.id}:name`,
                     )}
                   >
-                    <FormattedText text={project.period} />
-                  </p>
-                ) : null}
-                <h3
-                  {...createEditableTextProps(
-                    editor,
-                    `sideProjects:${project.id}:name`,
-                  )}
-                >
-                  <FormattedText text={project.name} />
-                </h3>
-                <p
-                  {...createEditableTextProps(
-                    editor,
-                    `sideProjects:${project.id}:description`,
-                  )}
-                >
-                  <FormattedText text={project.description} />
-                </p>
-                {project.highlights.length > 0 ? (
-                  <ul
-                    aria-label={`${stripInlineFormatting(project.name)} 상세 작업`}
-                    className="project-highlights"
+                    <FormattedText text={project.name} />
+                  </h3>
+                  <span
+                    aria-hidden={project.period ? undefined : true}
+                    className="project-period"
+                    {...(project.period
+                      ? createEditableTextProps(
+                          editor,
+                          `sideProjects:${project.id}:period`,
+                        )
+                      : {})}
                   >
-                    {project.highlights.map((highlight, highlightIndex) => (
+                    {project.period ? (
+                      <FormattedText text={project.period} />
+                    ) : null}
+                  </span>
+                </summary>
+
+                <div className="project-body">
+                  <p
+                    className="project-description"
+                    {...createEditableTextProps(
+                      editor,
+                      `sideProjects:${project.id}:description`,
+                    )}
+                  >
+                    <FormattedText text={project.description} />
+                  </p>
+                  {project.highlights.length > 0 ? (
+                    <ul
+                      aria-label={`${stripInlineFormatting(project.name)} 상세 작업`}
+                      className="project-highlights"
+                    >
+                      {project.highlights.map((highlight, highlightIndex) => (
+                        <li
+                          key={`${highlight}-${highlightIndex}`}
+                          {...createEditableTextProps(
+                            editor,
+                            `sideProjectHighlights:${project.id}:${highlightIndex}`,
+                          )}
+                        >
+                          <FormattedText text={highlight} />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <ul
+                    className="chips"
+                    aria-label={`${stripInlineFormatting(project.name)} 기술`}
+                  >
+                    {project.skills.map((skill, skillIndex) => (
                       <li
-                        key={`${highlight}-${highlightIndex}`}
+                        className="chip"
+                        key={`${skill}-${skillIndex}`}
                         {...createEditableTextProps(
                           editor,
-                          `sideProjectHighlights:${project.id}:${highlightIndex}`,
+                          `sideProjectSkills:${project.id}:${skillIndex}`,
                         )}
                       >
-                        <FormattedText text={highlight} />
+                        <FormattedText text={skill} />
                       </li>
                     ))}
                   </ul>
-                ) : null}
-                <ul
-                  className="chips"
-                  aria-label={`${stripInlineFormatting(project.name)} 기술`}
-                >
-                  {project.skills.map((skill, skillIndex) => (
-                    <li
-                      className="chip"
-                      key={`${skill}-${skillIndex}`}
-                      {...createEditableTextProps(
-                        editor,
-                        `sideProjectSkills:${project.id}:${skillIndex}`,
-                      )}
-                    >
-                      <FormattedText text={skill} />
-                    </li>
-                  ))}
-                </ul>
 
-                {project.images.length > 0 ? (
-                  <PortfolioImageGallery
-                    contextLabel="프로젝트"
-                    heading="Project Screenshots"
-                    images={project.images}
-                    title={stripInlineFormatting(project.name)}
-                  />
-                ) : null}
+                  {project.images.length > 0 ? (
+                    <PortfolioImageGallery
+                      contextLabel="프로젝트"
+                      heading="Project Screenshots"
+                      images={project.images}
+                      title={stripInlineFormatting(project.name)}
+                    />
+                  ) : null}
 
-                <details>
-                  <summary>프로젝트 근거 보기</summary>
-                  <div className="project-data">
-                    {hasApprovedLink ? (
-                      <div className="actions">
-                        {project.links.repository ? (
-                          <a
-                            className="btn alt"
-                            href={project.links.repository}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
-                          >
-                            Repository
-                          </a>
-                        ) : null}
-                        {project.links.demo ? (
-                          <a
-                            className="btn alt"
-                            href={project.links.demo}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`${stripInlineFormatting(project.name)} Demo (새 창)`}
-                          >
-                            Demo
-                          </a>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <p className="optional">
-                        Repository와 Demo는 승인된 URL이 제공될 때만 표시합니다.
-                      </p>
-                    )}
-                  </div>
-                </details>
-              </article>
+                  {hasApprovedLink ? (
+                    <div className="actions project-actions">
+                      {project.links.repository ? (
+                        <a
+                          className="btn alt"
+                          href={project.links.repository}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
+                        >
+                          Repository
+                        </a>
+                      ) : null}
+                      {project.links.demo ? (
+                        <a
+                          className="btn alt"
+                          href={project.links.demo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${stripInlineFormatting(project.name)} Demo (새 창)`}
+                        >
+                          Demo
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             );
           })}
         </div>
