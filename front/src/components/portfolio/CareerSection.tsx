@@ -44,6 +44,7 @@ export function CareerSection({
       eyebrow="경력"
       title="경력"
       visual={visual}
+      visibleHeading
     >
       {careers.length === 0 ? (
         <EmptyState>표시할 경력이 없습니다.</EmptyState>

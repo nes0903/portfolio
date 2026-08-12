@@ -18,6 +18,7 @@ interface PortfolioSectionProps {
   readonly title: string;
   readonly titleField?: string;
   readonly visual: PortfolioSectionVisual;
+  readonly visibleHeading?: boolean;
 }
 
 type SectionStyle = CSSProperties & {
@@ -40,6 +41,7 @@ export function PortfolioSection({
   title,
   titleField,
   visual,
+  visibleHeading = false,
 }: PortfolioSectionProps) {
   const titleId = `${id}-title`;
   const isIntroduction = id === "introduce";
@@ -100,6 +102,20 @@ export function PortfolioSection({
               </Heading>
             ) : null}
           </div>
+        </div>
+      ) : visibleHeading ? (
+        <div className="section-heading">
+          <span aria-hidden="true" className="section-heading-number">
+            {number}
+          </span>
+          <Heading
+            id={titleId}
+            {...(titleField
+              ? createEditableTextProps(editor, titleField)
+              : {})}
+          >
+            <FormattedText text={title} />
+          </Heading>
         </div>
       ) : (
         <Heading className="sr-only" id={titleId}>

@@ -299,5 +299,11 @@ describe("CareerSection", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "경력" }),
     ).toHaveAttribute("id", "career-title");
+    expect(section?.querySelector(".section-heading")).toHaveTextContent(
+      "02경력",
+    );
+    expect(
+      screen.getByRole("heading", { level: 2, name: "경력" }),
+    ).not.toHaveClass("sr-only");
   });
 });

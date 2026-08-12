@@ -254,5 +254,11 @@ describe("SideProjectsSection", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "프로젝트" }),
     ).toHaveAttribute("id", "side-projects-title");
+    expect(section?.querySelector(".section-heading")).toHaveTextContent(
+      "03프로젝트",
+    );
+    expect(
+      screen.getByRole("heading", { level: 2, name: "프로젝트" }),
+    ).not.toHaveClass("sr-only");
   });
 });

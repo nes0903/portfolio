@@ -34,6 +34,7 @@ export function SideProjectsSection({
       title="프로젝트"
       editor={editor}
       visual={visual}
+      visibleHeading
     >
       {sideProjects.length === 0 ? (
         <EmptyState>표시할 프로젝트가 없습니다.</EmptyState>
