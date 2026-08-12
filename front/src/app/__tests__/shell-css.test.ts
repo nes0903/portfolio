@@ -32,14 +32,19 @@ function expectSelectorDeclaration(
 }
 
 describe("Portfolio continuous scroll shell CSS contract", () => {
-  it("portfolio header와 자연 높이 page layout을 분리한다", () => {
+  it("빈 상단 spacer와 side brand를 자연 높이 page layout에서 분리한다", () => {
     expectSelectorDeclaration(
       ".site-header",
       /height\s*:\s*var\(--site-header-height\)/,
     );
     expectSelectorDeclaration(".layout", /overflow\s*:\s*visible/);
     expectSelectorDeclaration(".layout", /padding-left\s*:/);
-    expectSelectorDeclaration(".site-brand", /color\s*:\s*var\(--signal\)/);
+    expectSelectorDeclaration(".side-brand", /position\s*:\s*fixed/);
+    expectSelectorDeclaration(".side-brand", /color\s*:\s*var\(--signal\)/);
+    expectSelectorDeclaration(
+      ".side-brand",
+      /top\s*:\s*calc\(var\(--site-header-height\)/,
+    );
   });
 
   it("세로 navigation link에 최소 44px target과 현재 위치를 제공한다", () => {
@@ -109,6 +114,9 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
     expect(cssSource).toMatch(/pointer-events\s*:\s*none/);
     expect(cssSource).toMatch(/pointer-events\s*:\s*auto/);
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-brand\s*\{[\s\S]*?position\s*:\s*absolute[\s\S]*?height\s*:\s*var\(--site-header-height\)/,
+    );
   });
 
   it("관리자 미리보기는 내부 연속 scroll과 내부 navigation을 사용한다", () => {
@@ -118,6 +126,10 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
     expectSelectorDeclaration(
       ".visual-preview-viewport .section-navigation",
+      /position\s*:\s*sticky/,
+    );
+    expectSelectorDeclaration(
+      ".visual-preview-viewport .side-brand",
       /position\s*:\s*sticky/,
     );
   });

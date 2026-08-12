@@ -1,14 +1,4 @@
-/**
- * 이름 placeholder 없이 포트폴리오 정체성과 section 범위만 표시한다.
- */
+/** 상단의 기존 높이와 경계만 보존하는 장식용 검은 spacer. */
 export function PortfolioHeader() {
-  return (
-    <header className="site-header">
-      <div className="shell site-header-inner">
-        <a className="site-brand" href="#introduce">
-          PORTFOLIO
-        </a>
-      </div>
-    </header>
-  );
+  return <div aria-hidden="true" className="site-header" />;
 }

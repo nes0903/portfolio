@@ -60,6 +60,7 @@ body {
 }
 
 .portfolio-experience {
+  position: relative;
   min-height: 100dvh;
   color: var(--paper);
   background: var(--film);
@@ -201,14 +202,11 @@ h4 {
   backdrop-filter: blur(18px);
 }
 
-.site-header-inner {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.site-brand {
+.side-brand {
+  position: fixed;
+  z-index: 46;
+  top: calc(var(--site-header-height) + 22px);
+  left: clamp(20px, 2.5vw, 40px);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -1365,7 +1363,7 @@ details[open] summary::after {
   position: fixed;
   z-index: 45;
   top: 50%;
-  left: clamp(12px, 2vw, 32px);
+  left: clamp(20px, 2.5vw, 40px);
   width: max-content;
   transform: translateY(-50%);
 }
@@ -1479,8 +1477,16 @@ footer {
     overflow: visible;
   }
 
+  .side-brand {
+    position: absolute;
+    z-index: 51;
+    top: 0;
+    left: 20px;
+    height: var(--site-header-height);
+  }
+
   .section-navigation {
-    left: 8px;
+    left: 16px;
     padding: 6px;
     opacity: 0;
     pointer-events: none;
@@ -1945,10 +1951,20 @@ footer {
   padding: clamp(70px, 7vw, 112px) clamp(24px, 4vw, 64px);
 }
 
+.visual-preview-viewport .side-brand {
+  position: sticky;
+  z-index: 46;
+  top: calc(var(--site-header-height) + 18px);
+  left: 20px;
+  width: max-content;
+  display: flex;
+  margin-bottom: -44px;
+}
+
 .visual-preview-viewport .section-navigation {
   position: sticky;
   top: 50%;
-  left: 12px;
+  left: 20px;
   width: 0;
   height: 0;
   transform: none;

@@ -367,6 +367,10 @@ export function PortfolioExperience({
 
       <PortfolioHeader />
 
+      <a className="side-brand" href="#introduce">
+        PORTFOLIO
+      </a>
+
       <div
         className="section-navigation"
         data-scroll-visible="false"

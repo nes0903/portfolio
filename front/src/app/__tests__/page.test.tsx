@@ -125,7 +125,11 @@ describe("portfolio home page shell", () => {
   it("단일 페이지 landmark와 이름이 연결된 4개 focusable section을 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
-    expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(container.querySelector(".site-header")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(screen.getByRole("link", { name: "PORTFOLIO" })).toHaveAttribute(
       "href",
       "#introduce",
@@ -212,7 +216,7 @@ describe("portfolio home page shell", () => {
     }
   });
 
-  it("name placeholder와 profile panel 없이 주황색 portfolio header를 렌더링한다", async () => {
+  it("name placeholder와 profile panel 없이 주황색 side brand를 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
     expect(container).not.toHaveTextContent("[NAME]");
