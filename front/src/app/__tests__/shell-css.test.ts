@@ -64,7 +64,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
 
   it("carousel 대신 네 section을 자연 높이의 세로 흐름으로 배치한다", () => {
     expectSelectorDeclaration(".portfolio-sections", /display\s*:\s*grid/);
-    expectSelectorDeclaration(".portfolio-sections", /gap\s*:/);
+    expectSelectorDeclaration(".portfolio-sections", /gap\s*:\s*0/);
     expectSelectorDeclaration(".section", /position\s*:\s*relative/);
     expectSelectorDeclaration(".section", /height\s*:\s*auto/);
     expectSelectorDeclaration(".section", /min-height\s*:\s*calc\(100svh/);
@@ -73,14 +73,21 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).not.toContain("data-carousel-offset");
   });
 
-  it("section card의 배경, 경계선, 둥근 모서리를 유지한다", () => {
-    expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
-    expectSelectorDeclaration(".section", /#121216/);
-    expectSelectorDeclaration(".section", /border\s*:\s*(?!0\b)[^;]+/);
+  it("네 section을 하나의 외곽 card 안에서 여백 없이 연결한다", () => {
     expectSelectorDeclaration(
-      ".section",
+      ".portfolio-sections",
+      /border\s*:\s*(?!0\b)[^;]+/,
+    );
+    expectSelectorDeclaration(
+      ".portfolio-sections",
       /border-radius\s*:\s*var\(--card-radius\)/,
     );
+    expectSelectorDeclaration(".portfolio-sections", /overflow\s*:\s*hidden/);
+    expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
+    expectSelectorDeclaration(".section", /#121216/);
+    expectSelectorDeclaration(".section", /border\s*:\s*0/);
+    expectSelectorDeclaration(".section", /border-radius\s*:\s*0/);
+    expectSelectorDeclaration(".section", /box-shadow\s*:\s*none/);
   });
 
   it("desktop에서는 좌측 중앙에 고정된 단일 열 index를 표시한다", () => {

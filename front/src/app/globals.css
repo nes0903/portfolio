@@ -232,14 +232,17 @@ h4 {
 }
 
 .portfolio-sections {
-  --section-gap: clamp(24px, 4vw, 64px);
   --card-radius: var(--portfolio-card-radius, clamp(16px, 1.4vw, 22px));
 
   min-width: 0;
   display: grid;
-  gap: var(--section-gap);
+  gap: 0;
+  overflow: hidden;
   color: var(--paper);
   background: var(--film);
+  border: 1px solid #303036;
+  border-radius: var(--card-radius);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.28);
   isolation: isolate;
 }
 
@@ -262,9 +265,9 @@ h4 {
     radial-gradient(circle at 82% 8%, rgba(255, 91, 73, 0.08), transparent 24rem),
     linear-gradient(135deg, transparent 0 72%, rgba(255, 91, 73, 0.035) 72.2%),
     var(--section-background, #121216);
-  border: 1px solid #303036;
-  border-radius: var(--card-radius);
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.28);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   isolation: isolate;
   transition:
     border-color 320ms var(--ease),
@@ -1488,7 +1491,7 @@ footer {
   }
 
   .portfolio-sections {
-    --section-gap: 20px;
+    gap: 0;
   }
 
   .section + .section {
