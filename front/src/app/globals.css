@@ -60,6 +60,9 @@ body {
 }
 
 .portfolio-experience {
+  --side-rail-left: clamp(12px, 1.5vw, 24px);
+  --side-rail-width: clamp(104px, 7vw, 128px);
+
   position: relative;
   min-height: 100dvh;
   color: var(--paper);
@@ -205,11 +208,13 @@ h4 {
 .side-brand {
   position: fixed;
   z-index: 46;
-  top: calc(var(--site-header-height) + 22px);
-  left: clamp(20px, 2.5vw, 40px);
+  top: calc(var(--site-header-height) + 8px);
+  left: var(--side-rail-left);
+  width: var(--side-rail-width);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   color: var(--signal);
   font: 800 clamp(0.85rem, 1.15vw, 1rem)/1 var(--mono);
   letter-spacing: 0.14em;
@@ -1362,15 +1367,16 @@ details[open] summary::after {
 .section-navigation {
   position: fixed;
   z-index: 45;
-  top: 50%;
-  left: clamp(20px, 2.5vw, 40px);
-  width: max-content;
-  transform: translateY(-50%);
+  top: calc(var(--site-header-height) + 68px);
+  left: var(--side-rail-left);
+  width: var(--side-rail-width);
+  transform: none;
 }
 
 .section-nav ol {
   display: grid;
   gap: 8px;
+  justify-items: center;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1482,11 +1488,15 @@ footer {
     z-index: 51;
     top: 0;
     left: 20px;
+    width: auto;
     height: var(--site-header-height);
+    justify-content: flex-start;
   }
 
   .section-navigation {
+    top: 50%;
     left: 16px;
+    width: max-content;
     padding: 6px;
     opacity: 0;
     pointer-events: none;
@@ -1929,6 +1939,9 @@ footer {
 }
 
 .visual-preview-viewport .portfolio-experience {
+  --side-rail-left: 8px;
+  --side-rail-width: 112px;
+
   position: relative;
   width: 100%;
   height: 100%;
@@ -1954,25 +1967,26 @@ footer {
 .visual-preview-viewport .side-brand {
   position: sticky;
   z-index: 46;
-  top: calc(var(--site-header-height) + 18px);
-  left: 20px;
-  width: max-content;
+  top: calc(var(--site-header-height) + 8px);
+  left: var(--side-rail-left);
+  width: var(--side-rail-width);
   display: flex;
   margin-bottom: -44px;
 }
 
 .visual-preview-viewport .section-navigation {
   position: sticky;
-  top: 50%;
-  left: 20px;
-  width: 0;
+  top: calc(var(--site-header-height) + 68px);
+  left: var(--side-rail-left);
+  width: var(--side-rail-width);
   height: 0;
   transform: none;
 }
 
 .visual-preview-viewport .section-nav {
   position: absolute;
-  transform: translateY(-50%);
+  width: 100%;
+  transform: none;
 }
 
 .visual-editor-inspector {

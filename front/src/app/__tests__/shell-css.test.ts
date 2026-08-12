@@ -95,19 +95,37 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expectSelectorDeclaration(".section", /box-shadow\s*:\s*none/);
   });
 
-  it("desktop에서는 좌측 중앙에 고정된 단일 열 index를 표시한다", () => {
+  it("desktop에서는 side brand 아래 같은 중심축에 index를 표시한다", () => {
     expectSelectorDeclaration(
       ".section-navigation",
       /position\s*:\s*fixed/,
     );
-    expectSelectorDeclaration(".section-navigation", /top\s*:\s*50%/);
-    expectSelectorDeclaration(".section-navigation", /left\s*:/);
+    expectSelectorDeclaration(
+      ".section-navigation",
+      /top\s*:\s*calc\(var\(--site-header-height\)/,
+    );
+    expectSelectorDeclaration(
+      ".section-navigation",
+      /left\s*:\s*var\(--side-rail-left\)/,
+    );
+    expectSelectorDeclaration(
+      ".side-brand",
+      /left\s*:\s*var\(--side-rail-left\)/,
+    );
+    expectSelectorDeclaration(
+      ".side-brand",
+      /width\s*:\s*var\(--side-rail-width\)/,
+    );
     expectSelectorDeclaration(".section-nav ol", /display\s*:\s*grid/);
+    expectSelectorDeclaration(".section-nav ol", /justify-items\s*:\s*center/);
   });
 
   it("mobile에서는 scroll 중에만 navigation을 노출한다", () => {
     expect(cssSource).toMatch(
       /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-navigation\s*\{[\s\S]*?opacity\s*:\s*0/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-navigation\s*\{[\s\S]*?top\s*:\s*50%/,
     );
     expect(cssSource).toMatch(
       /\.section-navigation\[data-scroll-visible="true"\][\s\S]*?opacity\s*:\s*1/,
