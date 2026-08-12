@@ -203,6 +203,7 @@ export function PortfolioExperience({
 }: PortfolioExperienceProps) {
   const [richTextToolbar, setRichTextToolbar] =
     useState<RichTextToolbarState | null>(null);
+  const experienceRef = useRef<HTMLDivElement | null>(null);
   const richTextRangeRef = useRef<Range | null>(null);
   const richTextRootRef = useRef<HTMLElement | null>(null);
   const editorEnabled = editor !== undefined;
@@ -330,12 +331,12 @@ export function PortfolioExperience({
 
     if (!(target instanceof Element)) return;
 
-    const card = target.closest<HTMLElement>("[data-carousel-card]");
+    const section = target.closest<HTMLElement>("[data-section]");
     const navigationLink = target.closest<HTMLElement>("[data-nav]");
     const introductionTextBlock = target.closest<HTMLElement>(
       "[data-editor-block]",
     );
-    const sectionId = (card?.dataset.section ??
+    const sectionId = (section?.dataset.section ??
       navigationLink?.dataset.nav) as PortfolioSectionId | undefined;
 
     if (sectionId && !introductionTextBlock) {
@@ -351,6 +352,7 @@ export function PortfolioExperience({
 
   return (
     <div
+      ref={experienceRef}
       className="portfolio-experience"
       data-editor-preview={editor ? "true" : undefined}
       onBlurCapture={editor ? handleTextCommit : undefined}
@@ -365,30 +367,30 @@ export function PortfolioExperience({
 
       <PortfolioHeader />
 
-      <div className="mobile-toc shell">
-        <PortfolioNavigation
-          ariaLabel="모바일 페이지 목차"
-          metaLabel="페이지 목차"
-        />
+      <div
+        className="section-navigation"
+        data-scroll-visible="false"
+        data-section-navigation
+      >
+        <PortfolioNavigation ariaLabel="페이지 목차" className="section-nav" />
       </div>
 
       <div className="shell layout">
         <div className="stage">
           <main
-            className="portfolio-carousel"
-            data-carousel
-            aria-label="포트폴리오 섹션 캐러셀"
+            className="portfolio-sections"
+            data-scroll-sections
+            aria-label="포트폴리오 섹션"
           >
             <PortfolioSections content={content} editor={editor} />
           </main>
-
-          <div className="desktop-toc">
-            <PortfolioNavigation ariaLabel="페이지 목차" className="nav" />
-          </div>
         </div>
       </div>
 
-      <NavigationTracker />
+      <NavigationTracker
+        containerRef={experienceRef}
+        useContainerScroll={editorEnabled}
+      />
 
       {editor && richTextToolbar
         ? createPortal(

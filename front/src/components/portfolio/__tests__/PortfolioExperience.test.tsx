@@ -104,6 +104,29 @@ afterEach(() => {
 });
 
 describe("PortfolioExperience visual editor bridge", () => {
+  it("단일 세로 목차와 네 개 section을 연속 scroll 순서로 렌더링한다", () => {
+    const { container } = render(<PortfolioExperience content={createContent()} />);
+    const navigation = container.querySelectorAll("[data-section-navigation]");
+    const sections = [
+      ...container.querySelectorAll<HTMLElement>(
+        "[data-scroll-sections] > [data-section]",
+      ),
+    ];
+
+    expect(navigation).toHaveLength(1);
+    expect(sections.map((section) => section.id)).toEqual([
+      "introduce",
+      "career",
+      "side-projects",
+      "contact",
+    ]);
+    expect(container.querySelector("[data-carousel]")).not.toBeInTheDocument();
+    expect(container.querySelector("[data-carousel-card]")).not.toBeInTheDocument();
+    sections.forEach((section) => {
+      expect(section).not.toHaveAttribute("aria-roledescription", "slide");
+    });
+  });
+
   it("공개 화면과 같은 컴포넌트에 전체·섹션 디자인 토큰을 적용한다", () => {
     const { container } = render(<PortfolioExperience content={createContent()} />);
     const experience = container.querySelector<HTMLElement>(

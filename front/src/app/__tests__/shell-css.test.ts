@@ -31,33 +31,29 @@ function expectSelectorDeclaration(
   ).toBe(true);
 }
 
-describe("Portfolio carousel shell CSS contract", () => {
-  it("portfolio header 높이를 분리하고 남은 viewport를 carousel layout에 사용한다", () => {
+describe("Portfolio continuous scroll shell CSS contract", () => {
+  it("portfolio header와 자연 높이 page layout을 분리한다", () => {
     expectSelectorDeclaration(
       ".site-header",
       /height\s*:\s*var\(--site-header-height\)/,
     );
-    expectSelectorDeclaration(
-      ".layout",
-      /height\s*:\s*calc\(100svh\s*-\s*var\(--site-header-height\)\)/,
-    );
-    expectSelectorDeclaration(
-      ".site-brand",
-      /color\s*:\s*var\(--signal\)/,
-    );
-    expect(
-      cssRules.some((rule) => rule.selector.includes(".site-brand::before")),
-    ).toBe(false);
+    expectSelectorDeclaration(".layout", /overflow\s*:\s*visible/);
+    expectSelectorDeclaration(".layout", /padding-left\s*:/);
+    expectSelectorDeclaration(".site-brand", /color\s*:\s*var\(--signal\)/);
   });
 
-  it("desktop와 mobile 목차 link에 최소 44px target을 보장한다", () => {
+  it("세로 navigation link에 최소 44px target과 현재 위치를 제공한다", () => {
     expectSelectorDeclaration(
-      ".nav a",
-      /min-(?:height|block-size)\s*:\s*44px/,
+      ".section-nav a",
+      /min-(?:height|block-size)\s*:\s*(?:44|48)px/,
     );
     expectSelectorDeclaration(
-      ".mobile-toc a",
-      /min-(?:height|block-size)\s*:\s*44px/,
+      '.section-nav a[aria-current="location"]',
+      /color\s*:\s*var\(--signal\)/,
+    );
+    expectSelectorDeclaration(
+      '.section-nav a[aria-current="location"] .nav-label',
+      /opacity\s*:\s*1/,
     );
   });
 
@@ -66,94 +62,64 @@ describe("Portfolio carousel shell CSS contract", () => {
     expectSelectorDeclaration("html", /overflow-x\s*:\s*clip/);
   });
 
-  it("원래 크기의 독립 card를 유지하고 중앙 바깥의 양옆 원형 위치에 배치한다", () => {
-    const baseSectionRules = cssRules.filter(
-      (rule) => rule.selector === ".section",
-    );
-    const adjacentCardRules = cssRules.filter((rule) =>
-      /data-carousel-offset="(?:-1|1)"/.test(rule.selector),
-    );
-
-    expectSelectorDeclaration(
-      ".portfolio-carousel",
-      /overflow\s*:\s*visible/,
-    );
-    expectSelectorDeclaration(
-      ".section",
-      /position\s*:\s*absolute/,
-    );
-    expect(
-      baseSectionRules.some((rule) => /width\s*:\s*100%/.test(rule.body)),
-    ).toBe(true);
-    expect(
-      baseSectionRules.some((rule) =>
-        /height\s*:\s*calc\(100%\s*-\s*var\(--card-top-gap\)\)/.test(
-          rule.body,
-        ),
-      ),
-    ).toBe(true);
-    expect(adjacentCardRules).toHaveLength(2);
-    adjacentCardRules.forEach((rule) => {
-      expect(rule.body).not.toMatch(/scale\s*\(/);
-      expect(rule.body).toMatch(/opacity\s*:\s*1/);
-      expect(rule.body).toMatch(/filter\s*:\s*none/);
-      expect(rule.body).toMatch(/pointer-events\s*:\s*auto/);
-      expect(rule.body).toMatch(/cursor\s*:\s*pointer/);
-    });
-    expectSelectorDeclaration(
-      ".section",
-      /border\s*:\s*(?!0\b)[^;]+/,
-    );
-    expectSelectorDeclaration(
-      '[data-carousel-offset="0"]',
-      /transform\s*:/,
-    );
-    expectSelectorDeclaration(
-      '[data-carousel-offset="-1"]',
-      /transform\s*:/,
-    );
-    expectSelectorDeclaration(
-      '[data-carousel-offset="1"]',
-      /transform\s*:/,
-    );
+  it("carousel 대신 네 section을 자연 높이의 세로 흐름으로 배치한다", () => {
+    expectSelectorDeclaration(".portfolio-sections", /display\s*:\s*grid/);
+    expectSelectorDeclaration(".portfolio-sections", /gap\s*:/);
+    expectSelectorDeclaration(".section", /position\s*:\s*relative/);
+    expectSelectorDeclaration(".section", /height\s*:\s*auto/);
+    expectSelectorDeclaration(".section", /min-height\s*:\s*calc\(100svh/);
+    expectSelectorDeclaration(".section", /overflow\s*:\s*visible/);
+    expect(cssSource).not.toContain("portfolio-carousel");
+    expect(cssSource).not.toContain("data-carousel-offset");
   });
 
-  it("carousel 무대가 아닌 각 card가 불투명한 전체 배경을 소유한다", () => {
-    const carouselRule = cssRules.find(
-      (rule) => rule.selector === ".portfolio-carousel",
-    );
-    const sectionVariantRules = cssRules.filter((rule) =>
-      rule.selector.includes(".section[data-section="),
-    );
-
-    expect(carouselRule?.body).toMatch(/background\s*:\s*var\(--film\)/);
+  it("section card의 배경, 경계선, 둥근 모서리를 유지한다", () => {
     expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
     expectSelectorDeclaration(".section", /#121216/);
-    sectionVariantRules.forEach((rule) => {
-      expect(rule.body).not.toMatch(/background\s*:\s*transparent/);
-    });
-  });
-
-  it("card 위에 배경이 그대로 비치는 여백을 두고 모서리를 둥글게 표시한다", () => {
-    expectSelectorDeclaration(
-      ".section",
-      /top\s*:\s*var\(--card-top-gap\)/,
-    );
+    expectSelectorDeclaration(".section", /border\s*:\s*(?!0\b)[^;]+/);
     expectSelectorDeclaration(
       ".section",
       /border-radius\s*:\s*var\(--card-radius\)/,
     );
   });
 
-  it("reduced motion 선호에서 smooth scroll과 animation을 완화한다", () => {
+  it("desktop에서는 좌측 중앙에 고정된 단일 열 index를 표시한다", () => {
+    expectSelectorDeclaration(
+      ".section-navigation",
+      /position\s*:\s*fixed/,
+    );
+    expectSelectorDeclaration(".section-navigation", /top\s*:\s*50%/);
+    expectSelectorDeclaration(".section-navigation", /left\s*:/);
+    expectSelectorDeclaration(".section-nav ol", /display\s*:\s*grid/);
+  });
+
+  it("mobile에서는 scroll 중에만 navigation을 노출한다", () => {
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-navigation\s*\{[\s\S]*?opacity\s*:\s*0/,
+    );
+    expect(cssSource).toMatch(
+      /\.section-navigation\[data-scroll-visible="true"\][\s\S]*?opacity\s*:\s*1/,
+    );
+    expect(cssSource).toMatch(/pointer-events\s*:\s*none/);
+    expect(cssSource).toMatch(/pointer-events\s*:\s*auto/);
+  });
+
+  it("관리자 미리보기는 내부 연속 scroll과 내부 navigation을 사용한다", () => {
+    expectSelectorDeclaration(
+      ".visual-preview-viewport .portfolio-experience",
+      /overflow-y\s*:\s*auto/,
+    );
+    expectSelectorDeclaration(
+      ".visual-preview-viewport .section-navigation",
+      /position\s*:\s*sticky/,
+    );
+  });
+
+  it("reduced motion과 좁은 viewport에서도 안전하게 reflow한다", () => {
     expect(cssSource).toMatch(
       /@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/,
     );
     expect(cssSource).toMatch(/scroll-behavior\s*:\s*auto/);
-    expect(cssSource).toMatch(/(?:transition|animation)-duration\s*:/);
-  });
-
-  it("좁은 viewport와 200% 확대에서 단일 열 reflow와 긴 문자열 줄바꿈을 제공한다", () => {
     expect(cssSource).toMatch(/overflow-wrap\s*:\s*anywhere/);
     expect(cssSource).toMatch(
       /@media\s*\(\s*max-width\s*:\s*\d+px\s*\)[\s\S]*?(?:grid-template-columns\s*:\s*1fr|display\s*:\s*block)/,

@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 
 import {
   PORTFOLIO_SECTIONS,
   type PortfolioSectionId,
 } from "@/components/layout/navigation";
 
+interface NavigationTrackerProps {
+  readonly containerRef: RefObject<HTMLDivElement | null>;
+  readonly useContainerScroll?: boolean;
+}
+
 const sectionIds = new Set<PortfolioSectionId>(
   PORTFOLIO_SECTIONS.map((section) => section.id),
 );
-const carouselLength = PORTFOLIO_SECTIONS.length;
-const carouselHalf = Math.floor(carouselLength / 2);
+const MOBILE_NAVIGATION_HIDE_DELAY = 1_200;
 
 /**
  * 문자열이 승인된 portfolio section id인지 좁힌다.
@@ -21,90 +25,138 @@ function isPortfolioSectionId(value: string): value is PortfolioSectionId {
 }
 
 /**
- * 네 card의 차이를 원형 상대 위치로 변환한다.
+ * 네 section의 연속 스크롤 위치와 세로 navigation을 동기화한다.
  */
-function getCircularOffset(cardIndex: number, activeIndex: number): number {
-  let offset = cardIndex - activeIndex;
-
-  if (offset > carouselHalf) {
-    offset -= carouselLength;
-  } else if (offset < -carouselHalf) {
-    offset += carouselLength;
-  }
-
-  return offset;
-}
-
-/**
- * hash와 무한 carousel card 위치를 두 navigation에 동기화한다.
- */
-export function NavigationTracker() {
+export function NavigationTracker({
+  containerRef,
+  useContainerScroll = false,
+}: NavigationTrackerProps) {
   useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    const navigation = container.querySelector<HTMLElement>(
+      "[data-section-navigation]",
+    );
+    const sectionsRoot = container.querySelector<HTMLElement>(
+      "[data-scroll-sections]",
+    );
+    const sectionElements = new Map<PortfolioSectionId, HTMLElement>();
+
+    for (const section of PORTFOLIO_SECTIONS) {
+      const element = container.querySelector<HTMLElement>(
+        `[data-section="${section.id}"]`,
+      );
+
+      if (element) sectionElements.set(section.id, element);
+    }
+
+    if (!navigation || sectionElements.size === 0) return;
+
+    const resolvedContainer: HTMLDivElement = container;
+    const resolvedNavigation: HTMLElement = navigation;
+    const scrollRoot = useContainerScroll ? resolvedContainer : null;
+    const scrollTarget: Window | HTMLElement = scrollRoot ?? window;
+    const managesHistory = !useContainerScroll;
+    const intersectingSections = new Set<PortfolioSectionId>();
+    let activeSection: PortfolioSectionId | undefined;
+    let hideNavigationTimer: number | undefined;
     let pendingFocusFrame: number | undefined;
-    let pendingInitialHashTimer: number | undefined;
+    let pendingInitialFrame: number | undefined;
+    let navigationFocused = false;
+    let pointerActive = false;
+    let suppressObserver = false;
 
-    /**
-     * Fast Refresh 뒤에도 현재 navigation DOM을 다시 찾아 갱신한다.
-     */
-    function setCurrentSection(sectionId: PortfolioSectionId): void {
-      const navigationLinks = document.querySelectorAll<HTMLAnchorElement>(
-        "a[data-nav]",
-      );
+    function setCurrentSection(
+      sectionId: PortfolioSectionId,
+      options: { readonly syncHash: boolean },
+    ): void {
+      if (activeSection !== sectionId) {
+        activeSection = sectionId;
 
-      for (const link of navigationLinks) {
-        if (link.dataset.nav === sectionId) {
-          link.setAttribute("aria-current", "location");
-        } else {
-          link.removeAttribute("aria-current");
+        const navigationLinks = resolvedContainer.querySelectorAll<HTMLAnchorElement>(
+          "a[data-nav]",
+        );
+
+        for (const link of navigationLinks) {
+          if (link.dataset.nav === sectionId) {
+            link.setAttribute("aria-current", "location");
+          } else {
+            link.removeAttribute("aria-current");
+          }
         }
+
+        sectionsRoot?.setAttribute("data-active-section", sectionId);
+      }
+
+      if (
+        options.syncHash &&
+        managesHistory &&
+        window.location.hash !== `#${sectionId}`
+      ) {
+        window.history.replaceState(null, "", `#${sectionId}`);
       }
     }
 
-    /**
-     * 활성 card를 중앙(0), 이웃 card를 좌우(-1, 1)에 원형 배치한다.
-     */
-    function positionCarousel(sectionId: PortfolioSectionId): void {
-      const activeIndex = PORTFOLIO_SECTIONS.findIndex(
-        (section) => section.id === sectionId,
-      );
-      const cards = document.querySelectorAll<HTMLElement>(
-        "[data-carousel-card]",
-      );
+    function getViewportCenter(): number {
+      if (!scrollRoot) return window.innerHeight / 2;
 
-      if (activeIndex < 0) {
-        return;
-      }
+      const rootRect = scrollRoot.getBoundingClientRect();
+      return rootRect.top + rootRect.height / 2;
+    }
 
-      for (const [cardIndex, card] of Array.from(cards).entries()) {
-        const offset = getCircularOffset(cardIndex, activeIndex);
-        const wasActive = card.dataset.carouselOffset === "0";
+    function getNearestSection(
+      candidates: Iterable<PortfolioSectionId>,
+    ): PortfolioSectionId | undefined {
+      const viewportCenter = getViewportCenter();
+      let nearestSection: PortfolioSectionId | undefined;
+      let nearestDistance = Number.POSITIVE_INFINITY;
 
-        card.dataset.carouselOffset = String(offset);
-        card.dataset.carouselPosition =
-          offset === 0
-            ? "active"
-            : Math.abs(offset) === 1
-              ? "adjacent"
-              : "distant";
+      for (const sectionId of candidates) {
+        const section = sectionElements.get(sectionId);
 
-        if (offset === 0 && !wasActive) {
-          card.scrollTop = 0;
+        if (!section) continue;
+
+        const rect = section.getBoundingClientRect();
+        const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestSection = sectionId;
         }
       }
 
-      document
-        .querySelector<HTMLElement>("[data-carousel]")
-        ?.setAttribute("data-active-section", sectionId);
-      setCurrentSection(sectionId);
+      return nearestSection;
+    }
 
-      if (window.scrollX !== 0) {
-        window.scrollTo({ left: 0, top: window.scrollY, behavior: "auto" });
+    function updateFromGeometry(): void {
+      if (suppressObserver) return;
+
+      const viewportCenter = getViewportCenter();
+      const centeredSections = PORTFOLIO_SECTIONS.flatMap(({ id }) => {
+        const section = sectionElements.get(id);
+
+        if (!section) return [];
+
+        const rect = section.getBoundingClientRect();
+        return rect.top <= viewportCenter && rect.bottom >= viewportCenter
+          ? [id]
+          : [];
+      });
+      const candidates =
+        centeredSections.length > 0
+          ? centeredSections
+          : intersectingSections.size > 0
+            ? intersectingSections
+            : PORTFOLIO_SECTIONS.map(({ id }) => id);
+      const nearestSection = getNearestSection(candidates);
+
+      if (nearestSection) {
+        setCurrentSection(nearestSection, { syncHash: true });
       }
     }
 
-    /**
-     * card 전환 후 선택 card로 접근성 focus를 옮긴다.
-     */
     function scheduleSectionFocus(sectionId: PortfolioSectionId): void {
       if (pendingFocusFrame !== undefined) {
         window.cancelAnimationFrame(pendingFocusFrame);
@@ -112,102 +164,217 @@ export function NavigationTracker() {
 
       pendingFocusFrame = window.requestAnimationFrame(() => {
         pendingFocusFrame = undefined;
-        positionCarousel(sectionId);
-        document.getElementById(sectionId)?.focus({ preventScroll: true });
+        sectionElements.get(sectionId)?.focus({ preventScroll: true });
       });
     }
 
-    /**
-     * URL, card 위치, focus를 한 번에 같은 section으로 전환한다.
-     */
-    function navigateToSection(sectionId: PortfolioSectionId): void {
-      if (window.location.hash !== `#${sectionId}`) {
+    function getScrollBehavior(): ScrollBehavior {
+      return typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth";
+    }
+
+    function navigateToSection(
+      sectionId: PortfolioSectionId,
+      historyMode: "none" | "push",
+      focusSection = true,
+    ): void {
+      const section = sectionElements.get(sectionId);
+
+      if (!section) return;
+
+      if (
+        historyMode === "push" &&
+        managesHistory &&
+        window.location.hash !== `#${sectionId}`
+      ) {
         window.history.pushState(null, "", `#${sectionId}`);
       }
 
-      positionCarousel(sectionId);
-      scheduleSectionFocus(sectionId);
+      setCurrentSection(sectionId, { syncHash: false });
+      section.scrollIntoView({
+        behavior: getScrollBehavior(),
+        block: "start",
+      });
+
+      if (focusSection) scheduleSectionFocus(sectionId);
     }
 
-    /**
-     * 양옆 card, 번호, 내부 section 링크를 원형 carousel 회전으로 전환한다.
-     */
     function handleNavigationClick(event: MouseEvent): void {
       const clickedElement = event.target;
 
-      if (!(clickedElement instanceof Element)) {
-        return;
-      }
-
-      const adjacentCard = clickedElement.closest<HTMLElement>(
-        '[data-carousel-card][data-carousel-position="adjacent"]',
-      );
-
-      if (adjacentCard && isPortfolioSectionId(adjacentCard.id)) {
-        event.preventDefault();
-        navigateToSection(adjacentCard.id);
-        return;
-      }
+      if (!(clickedElement instanceof Element)) return;
 
       const link = clickedElement.closest<HTMLAnchorElement>('a[href^="#"]');
 
-      if (!link) {
-        return;
-      }
+      if (!link || !resolvedContainer.contains(link)) return;
 
       const sectionId = link.hash.slice(1);
 
-      if (!isPortfolioSectionId(sectionId)) {
-        return;
-      }
+      if (!isPortfolioSectionId(sectionId)) return;
 
       event.preventDefault();
-      navigateToSection(sectionId);
+      navigateToSection(sectionId, "push");
     }
 
-    /**
-     * browser history나 직접 입력한 hash를 해당 중앙 card에 반영한다.
-     */
     function handleHistoryNavigation(): void {
       const sectionId = window.location.hash.slice(1);
 
-      if (!isPortfolioSectionId(sectionId)) {
-        return;
+      if (isPortfolioSectionId(sectionId)) {
+        navigateToSection(sectionId, "none");
       }
-
-      positionCarousel(sectionId);
-      scheduleSectionFocus(sectionId);
     }
 
-    const initialSectionId = window.location.hash.slice(1);
+    function clearHideNavigationTimer(): void {
+      if (hideNavigationTimer === undefined) return;
 
-    if (isPortfolioSectionId(initialSectionId)) {
-      positionCarousel(initialSectionId);
-      pendingInitialHashTimer = window.setTimeout(() => {
-        positionCarousel(initialSectionId);
-      }, 80);
-    } else {
-      positionCarousel("introduce");
+      window.clearTimeout(hideNavigationTimer);
+      hideNavigationTimer = undefined;
     }
 
-    document.addEventListener("click", handleNavigationClick);
+    function scheduleNavigationHide(): void {
+      clearHideNavigationTimer();
+      hideNavigationTimer = window.setTimeout(() => {
+        hideNavigationTimer = undefined;
+
+        if (pointerActive || navigationFocused) {
+          scheduleNavigationHide();
+          return;
+        }
+
+        resolvedNavigation.dataset.scrollVisible = "false";
+      }, MOBILE_NAVIGATION_HIDE_DELAY);
+    }
+
+    function revealNavigation(): void {
+      resolvedNavigation.dataset.scrollVisible = "true";
+      scheduleNavigationHide();
+    }
+
+    function handleScroll(): void {
+      revealNavigation();
+
+      if (typeof window.IntersectionObserver !== "function") {
+        updateFromGeometry();
+      }
+    }
+
+    function handleNavigationFocus(): void {
+      navigationFocused = true;
+      revealNavigation();
+    }
+
+    function handleNavigationBlur(event: FocusEvent): void {
+      const nextTarget = event.relatedTarget;
+      navigationFocused =
+        nextTarget instanceof Node && resolvedNavigation.contains(nextTarget);
+      scheduleNavigationHide();
+    }
+
+    function handlePointerDown(): void {
+      pointerActive = true;
+      revealNavigation();
+    }
+
+    function handlePointerEnd(): void {
+      pointerActive = false;
+      scheduleNavigationHide();
+    }
+
+    resolvedNavigation.dataset.scrollVisible = "false";
+
+    const initialHash = managesHistory ? window.location.hash.slice(1) : "";
+    const initialSection = isPortfolioSectionId(initialHash)
+      ? initialHash
+      : "introduce";
+
+    setCurrentSection(initialSection, { syncHash: false });
+
+    if (isPortfolioSectionId(initialHash)) {
+      suppressObserver = true;
+      sectionElements.get(initialHash)?.scrollIntoView({
+        behavior: "auto",
+        block: "start",
+      });
+      pendingInitialFrame = window.requestAnimationFrame(() => {
+        pendingInitialFrame = undefined;
+        sectionElements.get(initialHash)?.scrollIntoView({
+          behavior: "auto",
+          block: "start",
+        });
+        suppressObserver = false;
+        setCurrentSection(initialHash, { syncHash: false });
+      });
+    }
+
+    let observer: IntersectionObserver | undefined;
+
+    if (typeof window.IntersectionObserver === "function") {
+      observer = new window.IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            const sectionId = (entry.target as HTMLElement).dataset.section;
+
+            if (!sectionId || !isPortfolioSectionId(sectionId)) continue;
+
+            if (entry.isIntersecting) {
+              intersectingSections.add(sectionId);
+            } else {
+              intersectingSections.delete(sectionId);
+            }
+          }
+
+          const nearestSection = getNearestSection(intersectingSections);
+
+          if (nearestSection && !suppressObserver) {
+            setCurrentSection(nearestSection, { syncHash: true });
+          }
+        },
+        {
+          root: scrollRoot,
+          rootMargin: "-45% 0px -45% 0px",
+          threshold: 0,
+        },
+      );
+
+      for (const section of sectionElements.values()) observer.observe(section);
+    }
+
+    resolvedContainer.addEventListener("click", handleNavigationClick);
+    scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateFromGeometry);
     window.addEventListener("hashchange", handleHistoryNavigation);
     window.addEventListener("popstate", handleHistoryNavigation);
+    resolvedNavigation.addEventListener("focusin", handleNavigationFocus);
+    resolvedNavigation.addEventListener("focusout", handleNavigationBlur);
+    resolvedNavigation.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", handlePointerEnd);
 
     return () => {
-      document.removeEventListener("click", handleNavigationClick);
+      observer?.disconnect();
+      resolvedContainer.removeEventListener("click", handleNavigationClick);
+      scrollTarget.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateFromGeometry);
       window.removeEventListener("hashchange", handleHistoryNavigation);
       window.removeEventListener("popstate", handleHistoryNavigation);
+      resolvedNavigation.removeEventListener("focusin", handleNavigationFocus);
+      resolvedNavigation.removeEventListener("focusout", handleNavigationBlur);
+      resolvedNavigation.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", handlePointerEnd);
+      clearHideNavigationTimer();
 
       if (pendingFocusFrame !== undefined) {
         window.cancelAnimationFrame(pendingFocusFrame);
       }
 
-      if (pendingInitialHashTimer !== undefined) {
-        window.clearTimeout(pendingInitialHashTimer);
+      if (pendingInitialFrame !== undefined) {
+        window.cancelAnimationFrame(pendingInitialFrame);
       }
     };
-  }, []);
+  }, [containerRef, useContainerScroll]);
 
   return null;
 }

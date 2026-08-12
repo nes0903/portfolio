@@ -103,7 +103,7 @@ afterEach(() => {
 });
 
 describe("portfolio home page shell", () => {
-  it("본문 skip link와 desktop/mobile 4개 anchor navigation을 제공한다", async () => {
+  it("본문 skip link와 단일 세로형 4개 anchor navigation을 제공한다", async () => {
     await renderHomePage();
 
     expect(screen.getByRole("link", { name: "본문으로 이동" })).toHaveAttribute(
@@ -111,16 +111,15 @@ describe("portfolio home page shell", () => {
       "#introduce",
     );
 
-    for (const navigationName of ["페이지 목차", "모바일 페이지 목차"]) {
-      const navigation = screen.getByRole("navigation", {
-        name: navigationName,
-      });
-      expect(
-        within(navigation)
-          .getAllByRole("link")
-          .map((link) => link.getAttribute("href")),
-      ).toEqual(navigationHrefs);
-    }
+    const navigation = screen.getByRole("navigation", {
+      name: "페이지 목차",
+    });
+    expect(
+      within(navigation)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual(navigationHrefs);
+    expect(screen.getAllByRole("navigation")).toHaveLength(1);
   });
 
   it("단일 페이지 landmark와 이름이 연결된 4개 focusable section을 렌더링한다", async () => {
