@@ -1149,6 +1149,7 @@ details[open] summary::after {
 }
 
 .project {
+  position: relative;
   min-width: 0;
   background: transparent;
   border-top: 1px solid #414147;
@@ -1159,11 +1160,12 @@ details[open] summary::after {
 }
 
 .project-summary {
+  position: relative;
   min-height: 68px;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto 30px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
   gap: clamp(16px, 2.5vw, 34px);
-  padding: 12px 0;
+  padding: 12px 30px 12px 0;
 }
 
 .project-summary h3 {
@@ -1173,8 +1175,9 @@ details[open] summary::after {
 }
 
 .project-summary::after {
-  align-self: center;
-  justify-self: end;
+  position: absolute;
+  top: calc(50% - 0.8rem);
+  right: 0;
 }
 
 .project-index {
@@ -1193,9 +1196,32 @@ details[open] summary::after {
   text-align: right;
 }
 
+.project[open][data-project-link-count="1"] .project-summary {
+  padding-right: 190px;
+}
+
+.project[open][data-project-link-count="2"] .project-summary {
+  padding-right: 310px;
+}
+
+.project-header-actions {
+  position: absolute;
+  top: 12px;
+  right: 42px;
+  z-index: 3;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.project-tech {
+  margin: 0;
+  padding: 0 0 18px 92px;
+}
+
 .project-body {
   min-width: 0;
-  padding: 6px 0 40px 92px;
+  padding: 0 0 40px 92px;
 }
 
 .project-description {
@@ -1224,16 +1250,7 @@ details[open] summary::after {
   color: var(--signal);
 }
 
-.project-body > .chips {
-  margin-top: 24px;
-}
-
 .project-body > .career-work-media {
-  margin-top: 28px;
-}
-
-.project-actions {
-  justify-content: flex-end;
   margin-top: 28px;
 }
 
@@ -1609,8 +1626,23 @@ footer {
   }
 
   .project-summary {
-    grid-template-columns: 52px minmax(0, 1fr) auto 28px;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
     gap: 14px;
+  }
+
+  .project[open][data-project-link-count] .project-summary {
+    padding-right: 28px;
+  }
+
+  .project-header-actions {
+    position: static;
+    justify-content: flex-start;
+    margin: 0 0 12px;
+    padding-left: 66px;
+  }
+
+  .project-tech {
+    padding-left: 66px;
   }
 
   .project-body {
@@ -1693,10 +1725,10 @@ footer {
   }
 
   .project-summary {
-    grid-template-columns: 40px minmax(0, 1fr) 26px;
+    grid-template-columns: 40px minmax(0, 1fr);
     row-gap: 7px;
     min-height: 68px;
-    padding: 12px 0;
+    padding: 12px 26px 12px 0;
   }
 
   .project-index {
@@ -1716,8 +1748,15 @@ footer {
   }
 
   .project-summary::after {
-    grid-column: 3;
-    grid-row: 1 / span 2;
+    top: calc(50% - 0.8rem);
+  }
+
+  .project-header-actions {
+    padding-left: 54px;
+  }
+
+  .project-tech {
+    padding-left: 54px;
   }
 
   .project-body {

@@ -132,6 +132,39 @@ describe("SideProjectsSection", () => {
     expect(disclosures.every((item) => item.open === false)).toBe(true);
   });
 
+  it("펼친 project에서 링크와 기술을 본문보다 앞에 배치하고 링크 클릭 시 열린 상태를 유지한다", () => {
+    const { container } = render(
+      <SideProjectsSection sideProjects={[sideProjects[0]!]} />,
+    );
+    const [project] = projectDisclosures(container);
+    if (!project) throw new Error("project disclosure가 필요합니다");
+
+    const summary = project.querySelector<HTMLElement>(":scope > summary");
+    if (!summary) throw new Error("project summary가 필요합니다");
+    fireEvent.click(summary);
+
+    const actions = project.querySelector<HTMLElement>(
+      ":scope > .project-header-actions",
+    );
+    const skills = within(project).getByRole("list", {
+      name: "First Project 기술",
+    });
+    const body = project.querySelector<HTMLElement>(":scope > .project-body");
+
+    expect(project.open).toBe(true);
+    expect(actions).not.toBeNull();
+    expect(skills).toHaveClass("project-tech");
+    expect(skills.nextElementSibling).toBe(body);
+    expect(body?.querySelector(".project-tech, .project-header-actions")).toBeNull();
+
+    fireEvent.click(
+      within(project).getByRole("link", {
+        name: "First Project Link (새 창)",
+      }),
+    );
+    expect(project.open).toBe(true);
+  });
+
   it("관리자 미리보기의 기존 project inline editor field를 유지한다", () => {
     const editor: PortfolioEditorBridge = {
       onChangeIntroductionTextBlock: vi.fn(),
@@ -192,7 +225,7 @@ describe("SideProjectsSection", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("제공된 repository/demo만 안전한 HTTPS external link로 렌더링한다", () => {
+  it("제공된 repository/link만 안전한 HTTPS external link로 렌더링한다", () => {
     const { container } = render(
       <SideProjectsSection sideProjects={sideProjects} />,
     );
@@ -205,16 +238,16 @@ describe("SideProjectsSection", () => {
       name: "First Project Repository (새 창)",
       hidden: true,
     });
-    const firstDemo = within(firstCard).getByRole("link", {
-      name: "First Project Demo (새 창)",
+    const firstLink = within(firstCard).getByRole("link", {
+      name: "First Project Link (새 창)",
       hidden: true,
     });
-    const thirdDemo = within(thirdCard).getByRole("link", {
-      name: "Third Project Demo (새 창)",
+    const thirdLink = within(thirdCard).getByRole("link", {
+      name: "Third Project Link (새 창)",
       hidden: true,
     });
 
-    for (const link of [firstRepository, firstDemo, thirdDemo]) {
+    for (const link of [firstRepository, firstLink, thirdLink]) {
       expect(link.getAttribute("href")).toMatch(/^https:\/\//);
       expect(link).toHaveAttribute("target", "_blank");
       expect(link.getAttribute("rel")?.split(/\s+/)).toEqual(
@@ -225,6 +258,7 @@ describe("SideProjectsSection", () => {
     expect(screen.queryByText(
       "Repository와 Demo는 승인된 URL이 제공될 때만 표시합니다.",
     )).toBeNull();
+    expect(within(firstCard).queryByText("Demo", { exact: true })).toBeNull();
     expect(within(thirdCard).queryByText("Repository")).not.toBeInTheDocument();
   });
 

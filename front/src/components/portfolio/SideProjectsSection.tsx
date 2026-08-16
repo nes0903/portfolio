@@ -44,10 +44,14 @@ export function SideProjectsSection({
             const hasApprovedLink =
               project.links.repository !== undefined ||
               project.links.demo !== undefined;
+            const approvedLinkCount =
+              Number(project.links.repository !== undefined) +
+              Number(project.links.demo !== undefined);
 
             return (
               <details
                 className="project"
+                data-project-link-count={approvedLinkCount}
                 key={project.id}
                 name="side-projects-accordion"
               >
@@ -79,6 +83,51 @@ export function SideProjectsSection({
                   </span>
                 </summary>
 
+                {hasApprovedLink ? (
+                  <div className="actions project-header-actions">
+                    {project.links.repository ? (
+                      <a
+                        className="btn alt"
+                        href={project.links.repository}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
+                      >
+                        Repository
+                      </a>
+                    ) : null}
+                    {project.links.demo ? (
+                      <a
+                        className="btn alt"
+                        href={project.links.demo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${stripInlineFormatting(project.name)} Link (새 창)`}
+                      >
+                        Link
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <ul
+                  className="chips project-tech"
+                  aria-label={`${stripInlineFormatting(project.name)} 기술`}
+                >
+                  {project.skills.map((skill, skillIndex) => (
+                    <li
+                      className="chip"
+                      key={`${skill}-${skillIndex}`}
+                      {...createEditableTextProps(
+                        editor,
+                        `sideProjectSkills:${project.id}:${skillIndex}`,
+                      )}
+                    >
+                      <FormattedText text={skill} />
+                    </li>
+                  ))}
+                </ul>
+
                 <div className="project-body">
                   <p
                     className="project-description"
@@ -107,23 +156,6 @@ export function SideProjectsSection({
                       ))}
                     </ul>
                   ) : null}
-                  <ul
-                    className="chips"
-                    aria-label={`${stripInlineFormatting(project.name)} 기술`}
-                  >
-                    {project.skills.map((skill, skillIndex) => (
-                      <li
-                        className="chip"
-                        key={`${skill}-${skillIndex}`}
-                        {...createEditableTextProps(
-                          editor,
-                          `sideProjectSkills:${project.id}:${skillIndex}`,
-                        )}
-                      >
-                        <FormattedText text={skill} />
-                      </li>
-                    ))}
-                  </ul>
 
                   {project.images.length > 0 ? (
                     <PortfolioImageGallery
@@ -132,33 +164,6 @@ export function SideProjectsSection({
                       images={project.images}
                       title={stripInlineFormatting(project.name)}
                     />
-                  ) : null}
-
-                  {hasApprovedLink ? (
-                    <div className="actions project-actions">
-                      {project.links.repository ? (
-                        <a
-                          className="btn alt"
-                          href={project.links.repository}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
-                        >
-                          Repository
-                        </a>
-                      ) : null}
-                      {project.links.demo ? (
-                        <a
-                          className="btn alt"
-                          href={project.links.demo}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`${stripInlineFormatting(project.name)} Demo (새 창)`}
-                        >
-                          Demo
-                        </a>
-                      ) : null}
-                    </div>
                   ) : null}
                 </div>
               </details>
