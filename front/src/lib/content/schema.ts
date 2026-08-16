@@ -104,7 +104,7 @@ const httpsUrlSchema = z
 
 export const DEFAULT_SECTION_VISUAL = {
   accentColor: "#ff5b49",
-  backgroundColor: "#121216",
+  backgroundColor: "#000000",
   backgroundImage: null,
   textColor: "#eeeae2",
 } as const;
@@ -141,7 +141,7 @@ export const DEFAULT_PORTFOLIO_VISUALS = {
   accentColor: "#ff5b49",
   cardRadius: 22,
   mutedTextColor: "#a8a6a0",
-  pageBackgroundColor: "#09090b",
+  pageBackgroundColor: "#000000",
   sections: {
     introduce: DEFAULT_INTRODUCTION_VISUAL,
     skills: DEFAULT_SECTION_VISUAL,

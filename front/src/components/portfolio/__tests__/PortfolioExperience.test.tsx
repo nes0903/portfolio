@@ -68,6 +68,31 @@ function createContentWithCustomTextBlock() {
   };
 }
 
+function createContentWithBackgroundImage() {
+  const content = createContent();
+
+  return {
+    ...content,
+    visuals: {
+      ...content.visuals,
+      sections: {
+        ...content.visuals.sections,
+        introduce: {
+          ...content.visuals.sections.introduce,
+          backgroundImage: {
+            alt: "검정 덮개를 사용하는 소개 배경",
+            overlayOpacity: 0.4,
+            path: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+            positionX: 35,
+            positionY: 62,
+            url: "https://portfolio.supabase.co/storage/v1/object/public/portfolio-assets/example.webp",
+          },
+        },
+      },
+    },
+  };
+}
+
 function createContentWithFormattingAcrossSections() {
   const content = createContent();
 
@@ -127,20 +152,32 @@ describe("PortfolioExperience visual editor bridge", () => {
     });
   });
 
-  it("공개 화면과 같은 컴포넌트에 전체·섹션 디자인 토큰을 적용한다", () => {
+  it("저장된 배경색을 무시하고 나머지 디자인 토큰만 적용한다", () => {
     const { container } = render(<PortfolioExperience content={createContent()} />);
     const experience = container.querySelector<HTMLElement>(
       ".portfolio-experience",
     );
     const introduce = container.querySelector<HTMLElement>("#introduce");
 
-    expect(experience?.style.getPropertyValue("--film")).toBe("#112233");
+    expect(experience?.style.getPropertyValue("--film")).toBe("");
     expect(
       experience?.style.getPropertyValue("--portfolio-card-radius"),
     ).toBe("");
-    expect(introduce?.style.getPropertyValue("--section-background")).toBe(
-      "#223344",
+    expect(introduce?.style.getPropertyValue("--section-background")).toBe("");
+  });
+
+  it("사용자 배경 사진에는 고정된 검정 덮개를 적용한다", () => {
+    const { container } = render(
+      <PortfolioExperience content={createContentWithBackgroundImage()} />,
     );
+    const overlay = container.querySelector<HTMLElement>(
+      ".section-background-overlay",
+    );
+
+    expect(overlay).toHaveStyle({
+      backgroundColor: "#000000",
+      opacity: "0.4",
+    });
   });
 
   it("관리자 모드에서 실제 제목을 직접 편집해 필드 변경을 전달한다", () => {

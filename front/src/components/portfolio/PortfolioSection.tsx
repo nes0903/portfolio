@@ -23,7 +23,6 @@ interface PortfolioSectionProps {
 
 type SectionStyle = CSSProperties & {
   readonly "--paper": string;
-  readonly "--section-background": string;
   readonly "--signal": string;
   readonly "--signal-soft": string;
 };
@@ -48,7 +47,6 @@ export function PortfolioSection({
   const Heading = isIntroduction ? "h1" : "h2";
   const sectionStyle: SectionStyle = {
     "--paper": visual.textColor,
-    "--section-background": visual.backgroundColor,
     "--signal": visual.accentColor,
     "--signal-soft": visual.accentColor,
   };
@@ -78,7 +76,7 @@ export function PortfolioSection({
           <span
             className="section-background-overlay"
             style={{
-              backgroundColor: visual.backgroundColor,
+              backgroundColor: "#000000",
               opacity: image.overlayOpacity,
             }}
           />

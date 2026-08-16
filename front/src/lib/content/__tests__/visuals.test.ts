@@ -24,6 +24,32 @@ describe("portfolio visual schema", () => {
     );
 
     expect(parsed.visuals).toEqual(DEFAULT_PORTFOLIO_VISUALS);
+    expect(parsed.visuals.pageBackgroundColor).toBe("#000000");
+    expect(
+      Object.values(parsed.visuals.sections).every(
+        (section) => section.backgroundColor === "#000000",
+      ),
+    ).toBe(true);
+  });
+
+  it("기존 문서에 저장된 다른 배경색도 호환성을 위해 허용한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const result = portfolioDocumentContentSchema.safeParse({
+      ...content,
+      visuals: {
+        ...DEFAULT_PORTFOLIO_VISUALS,
+        pageBackgroundColor: "#112233",
+        sections: {
+          ...DEFAULT_PORTFOLIO_VISUALS.sections,
+          introduce: {
+            ...DEFAULT_PORTFOLIO_VISUALS.sections.introduce,
+            backgroundColor: "#223344",
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it("검증된 섹션 배경 이미지와 표시 위치만 허용한다", () => {

@@ -249,11 +249,6 @@ function SectionVisualControls({
     <div className="admin-visual-controls">
       <div className="admin-field-grid">
         <ColorField
-          label="카드 배경색"
-          onChange={(backgroundColor) => onChange({ backgroundColor })}
-          value={visual.backgroundColor}
-        />
-        <ColorField
           label="글자색"
           onChange={(textColor) => onChange({ textColor })}
           value={visual.textColor}
@@ -1357,16 +1352,6 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
               </div>
             </div>
             <div className="admin-field-grid">
-              <ColorField
-                label="페이지 배경색"
-                onChange={(pageBackgroundColor) =>
-                  setContent((current) => ({
-                    ...current,
-                    visuals: { ...current.visuals, pageBackgroundColor },
-                  }))
-                }
-                value={content.visuals.pageBackgroundColor}
-              />
               <ColorField
                 label="기본 글자색"
                 onChange={(textColor) =>

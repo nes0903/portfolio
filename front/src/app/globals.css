@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-film: #09090b;
+  --color-film: #000000;
   --color-frame: #111114;
   --color-paper: #eeeae2;
   --color-ink: #101014;
@@ -255,7 +255,7 @@ h4 {
   background:
     radial-gradient(circle at 82% 8%, rgba(255, 91, 73, 0.08), transparent 24rem),
     linear-gradient(135deg, transparent 0 72%, rgba(255, 91, 73, 0.035) 72.2%),
-    var(--section-background, #121216);
+    #000000;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -384,23 +384,6 @@ h4 {
   color: var(--paper);
 }
 
-.section[data-section="introduce"]::before {
-  position: absolute;
-  z-index: -1;
-  top: 8%;
-  right: -7%;
-  width: 64%;
-  height: 58%;
-  content: "";
-  background:
-    linear-gradient(112deg, rgba(255, 255, 255, 0.28), transparent 42%),
-    linear-gradient(160deg, #85868a, #242429 62%);
-  clip-path: polygon(21% 0, 100% 0, 84% 100%, 0 72%);
-  opacity: 0.72;
-  filter: grayscale(1) contrast(1.1);
-  animation: frame-drift 12s var(--ease) infinite alternate;
-}
-
 .section[data-section="career"] {
   color: var(--paper);
 }
@@ -440,15 +423,6 @@ h4 {
   line-height: 1;
   letter-spacing: -0.045em;
   white-space: nowrap;
-}
-
-@keyframes frame-drift {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(-2.5%, 2%, 0) scale(1.035);
-  }
 }
 
 /* || SECTION TYPOGRAPHY */
@@ -1543,13 +1517,6 @@ footer {
 
   .section + .section {
     margin-top: 0;
-  }
-
-  .section[data-section="introduce"]::before {
-    top: 18%;
-    right: -24%;
-    width: 92%;
-    opacity: 0.46;
   }
 
   .introduction-text-canvas {

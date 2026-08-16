@@ -25,7 +25,6 @@ interface PortfolioExperienceProps {
 }
 
 type PortfolioThemeStyle = CSSProperties & {
-  readonly "--film": string;
   readonly "--muted": string;
   readonly "--paper": string;
   readonly "--signal": string;
@@ -69,7 +68,6 @@ function createThemeStyle(content: PortfolioContentViewModel): PortfolioThemeSty
   const { visuals } = content;
 
   return {
-    "--film": visuals.pageBackgroundColor,
     "--muted": visuals.mutedTextColor,
     "--paper": visuals.textColor,
     "--signal": visuals.accentColor,
