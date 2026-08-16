@@ -189,6 +189,8 @@ describe("CareerSection", () => {
           throw new Error("evidence section 세 개가 필요합니다");
         }
 
+        expect(tech).toHaveClass("career-evidence-tech");
+
         expect(
           within(action)
             .getAllByRole("listitem")

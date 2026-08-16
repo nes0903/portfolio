@@ -121,6 +121,25 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
   });
 
+  it("경력 TECH 값의 시작점과 첫 줄을 다른 evidence 행에 맞춘다", () => {
+    expectSelectorDeclaration(
+      ".evidence .career-evidence-tech .chips",
+      /padding-left\s*:\s*1\.2rem/,
+    );
+    expectSelectorDeclaration(
+      ".evidence .career-evidence-tech .chip",
+      /min-height\s*:\s*0/,
+    );
+    expectSelectorDeclaration(
+      ".evidence .career-evidence-tech .chip",
+      /align-items\s*:\s*flex-start/,
+    );
+    expectSelectorDeclaration(
+      ".evidence .career-evidence-tech .chips",
+      /padding-left\s*:\s*0/,
+    );
+  });
+
   it("desktop에서는 side brand 아래 같은 중심축에 index를 표시한다", () => {
     expectSelectorDeclaration(
       ".section-navigation",

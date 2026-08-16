@@ -102,7 +102,7 @@ export function CareerSection({
                         <FormattedText text={work.title} />
                       </summary>
                       <div className="evidence">
-                        <section>
+                        <section className="career-evidence-tech">
                           <h4>Tech</h4>
                           {work.technologies && work.technologies.length > 0 ? (
                             <ul
