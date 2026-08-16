@@ -76,7 +76,13 @@ interface TrackerFixture {
   readonly unmount: () => void;
 }
 
-function TrackerTestPage({ useContainerScroll = false }) {
+function TrackerTestPage({
+  onActiveSectionChange,
+  useContainerScroll = false,
+}: {
+  readonly onActiveSectionChange?: (sectionId: PortfolioSectionId) => void;
+  readonly useContainerScroll?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -98,13 +104,17 @@ function TrackerTestPage({ useContainerScroll = false }) {
       </main>
       <NavigationTracker
         containerRef={containerRef}
+        onActiveSectionChange={onActiveSectionChange}
         useContainerScroll={useContainerScroll}
       />
     </div>
   );
 }
 
-function renderTracker(useContainerScroll = false): TrackerFixture {
+function renderTracker(
+  useContainerScroll = false,
+  onActiveSectionChange?: (sectionId: PortfolioSectionId) => void,
+): TrackerFixture {
   const queuedFrames: FrameRequestCallback[] = [];
   const cancelAnimationFrameMock = vi.fn();
   const scrollIntoViewMock = vi.fn();
@@ -123,7 +133,10 @@ function renderTracker(useContainerScroll = false): TrackerFixture {
   });
 
   const view = render(
-    <TrackerTestPage useContainerScroll={useContainerScroll} />,
+    <TrackerTestPage
+      onActiveSectionChange={onActiveSectionChange}
+      useContainerScroll={useContainerScroll}
+    />,
   );
 
   return {
@@ -236,6 +249,25 @@ describe("NavigationTracker continuous scroll navigation", () => {
 
     expectCurrentSection("career");
     expect(window.location.hash).toBe("#career");
+  });
+
+  it("활성 section이 바뀌면 관리자 편집 상태에 변경을 알린다", () => {
+    const onActiveSectionChange = vi.fn();
+    renderTracker(false, onActiveSectionChange);
+    const observer = getObserver();
+
+    expect(onActiveSectionChange).toHaveBeenCalledWith("introduce");
+
+    setSectionRect("introduce", -700, 700);
+    setSectionRect("career", 0, 800);
+    act(() => {
+      observer.trigger([
+        { id: "introduce", isIntersecting: false },
+        { id: "career", isIntersecting: true },
+      ]);
+    });
+
+    expect(onActiveSectionChange).toHaveBeenLastCalledWith("career");
   });
 
   it("메뉴 클릭 시 hash를 추가하고 section으로 이동한 뒤 focus를 옮긴다", () => {

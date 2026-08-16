@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 import {
   PORTFOLIO_SECTIONS,
@@ -9,6 +9,7 @@ import {
 
 interface NavigationTrackerProps {
   readonly containerRef: RefObject<HTMLDivElement | null>;
+  readonly onActiveSectionChange?: (sectionId: PortfolioSectionId) => void;
   readonly useContainerScroll?: boolean;
 }
 
@@ -29,8 +30,15 @@ function isPortfolioSectionId(value: string): value is PortfolioSectionId {
  */
 export function NavigationTracker({
   containerRef,
+  onActiveSectionChange,
   useContainerScroll = false,
 }: NavigationTrackerProps) {
+  const onActiveSectionChangeRef = useRef(onActiveSectionChange);
+
+  useEffect(() => {
+    onActiveSectionChangeRef.current = onActiveSectionChange;
+  }, [onActiveSectionChange]);
+
   useEffect(() => {
     const container = containerRef.current;
 
@@ -88,6 +96,7 @@ export function NavigationTracker({
         }
 
         sectionsRoot?.setAttribute("data-active-section", sectionId);
+        onActiveSectionChangeRef.current?.(sectionId);
       }
 
       if (

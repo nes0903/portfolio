@@ -1,9 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { savePortfolioAction } from "@/app/admin/actions";
+import { logoutAction, savePortfolioAction } from "@/app/admin/actions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import {
   PORTFOLIO_SECTIONS,
@@ -80,7 +88,7 @@ function blocksLayoutChangeThatIncreasesOverlap(
   }
 
   const canvas = document.querySelector<HTMLElement>(
-    '.visual-preview-viewport [data-editor-canvas="true"]',
+    '[data-editor-preview="true"] [data-editor-canvas="true"]',
   );
   if (!canvas) return false;
 
@@ -575,6 +583,9 @@ function IntroductionTextBlockControls({
 
 export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   const [content, setContent] = useState(initialContent);
+  const [isInspectorOpen, setInspectorOpen] = useState(true);
+  const [isMobileViewport, setMobileViewport] = useState(false);
+  const [isViewportReady, setViewportReady] = useState(false);
   const [selectedSection, setSelectedSection] =
     useState<PortfolioSectionId>("introduce");
   const [selectedIntroductionTextBlockId, setSelectedIntroductionTextBlockId] =
@@ -592,6 +603,7 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
     savePortfolioAction,
     initialAdminFormState,
   );
+  const inspectorToggleRef = useRef<HTMLButtonElement | null>(null);
   const normalizedContent = useMemo(
     () => normalizePortfolioContentForSave(content),
     [content],
@@ -601,13 +613,67 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
     [normalizedContent],
   );
 
-  function selectSection(sectionId: PortfolioSectionId): void {
+  const selectSection = useCallback((sectionId: PortfolioSectionId): void => {
     setSelectedSection(sectionId);
     window.requestAnimationFrame(() => {
       document
         .querySelector(`[data-admin-section="${sectionId}"]`)
         ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  }, []);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 720px)");
+
+    function syncViewportMode(): void {
+      setMobileViewport(mobileQuery.matches);
+      setInspectorOpen(!mobileQuery.matches);
+      setViewportReady(true);
+    }
+
+    syncViewportMode();
+    mobileQuery.addEventListener("change", syncViewportMode);
+
+    return () => mobileQuery.removeEventListener("change", syncViewportMode);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport || !isInspectorOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isInspectorOpen, isMobileViewport]);
+
+  useEffect(() => {
+    if (!isInspectorOpen) return;
+
+    function closeInspectorWithEscape(event: KeyboardEvent): void {
+      if (event.key !== "Escape") return;
+
+      setInspectorOpen(false);
+      window.requestAnimationFrame(() => inspectorToggleRef.current?.focus());
+    }
+
+    window.addEventListener("keydown", closeInspectorWithEscape);
+    return () => window.removeEventListener("keydown", closeInspectorWithEscape);
+  }, [isInspectorOpen]);
+
+  function closeInspector(): void {
+    setInspectorOpen(false);
+    window.requestAnimationFrame(() => inspectorToggleRef.current?.focus());
+  }
+
+  function navigateToSection(sectionId: PortfolioSectionId): void {
+    selectSection(sectionId);
+    document
+      .querySelector<HTMLAnchorElement>(
+        `[data-editor-preview] a[data-nav="${sectionId}"]`,
+      )
+      ?.click();
   }
 
   function updateSectionVisual(
@@ -1299,51 +1365,97 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         value={JSON.stringify(normalizedContent)}
       />
 
-      <div className="visual-editor-workspace">
-        <section className="visual-preview-panel" aria-label="실시간 미리보기">
-          <div className="visual-preview-toolbar">
-            <div>
-              <strong>실제 화면 미리보기</strong>
-              <span>글자를 직접 눌러 수정하거나 카드를 선택하세요.</span>
-            </div>
-            <div className="visual-section-tabs" aria-label="편집할 섹션">
-              {PORTFOLIO_SECTIONS.map((section) => (
-                <button
-                  aria-pressed={selectedSection === section.id}
-                  className="admin-button"
-                  key={section.id}
-                  onClick={() => {
-                    selectSection(section.id);
-                    document
-                      .querySelector<HTMLAnchorElement>(
-                        `[data-editor-preview] a[data-nav="${section.id}"]`,
-                      )
-                      ?.click();
-                  }}
-                  type="button"
-                >
-                  {section.number} {section.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="visual-preview-viewport">
-            <PortfolioExperience
-              content={previewContent}
-              editor={{
-                onChangeIntroductionTextBlock: updateIntroductionTextBlock,
-                onSelectIntroductionTextBlock: selectIntroductionTextBlock,
-                onSelectSection: selectSection,
-                onTextCommit: commitInlineText,
-                selectedIntroductionTextBlockId,
-                selectedSection,
-              }}
-              showSkipLink={false}
-            />
-          </div>
-        </section>
+      <button
+        aria-controls="visual-editor-inspector"
+        aria-expanded={isInspectorOpen}
+        className="visual-editor-toggle"
+        data-visible={!isInspectorOpen ? "true" : "false"}
+        onClick={() => setInspectorOpen(true)}
+        ref={inspectorToggleRef}
+        type="button"
+      >
+        편집
+      </button>
 
-        <aside className="visual-editor-inspector" aria-label="디자인 속성">
+      <div className="visual-editor-workspace">
+        <div
+          className="visual-editor-canvas"
+          aria-label="편집 가능한 공개 포트폴리오"
+        >
+          <PortfolioExperience
+            content={previewContent}
+            editor={{
+              onChangeIntroductionTextBlock: updateIntroductionTextBlock,
+              onSelectIntroductionTextBlock: selectIntroductionTextBlock,
+              onSelectSection: selectSection,
+              onTextCommit: commitInlineText,
+              selectedIntroductionTextBlockId,
+              selectedSection,
+            }}
+            scrollMode="window"
+          />
+        </div>
+
+        <aside
+          aria-hidden={!isInspectorOpen}
+          aria-labelledby="visual-editor-inspector-title"
+          aria-modal={
+            isMobileViewport && isInspectorOpen ? true : undefined
+          }
+          className="visual-editor-inspector"
+          data-open={isInspectorOpen ? "true" : "false"}
+          data-viewport-ready={isViewportReady ? "true" : "false"}
+          id="visual-editor-inspector"
+          inert={!isInspectorOpen}
+          role={isMobileViewport ? "dialog" : "complementary"}
+        >
+          <header className="visual-editor-inspector-header">
+            <div>
+              <span className="admin-kicker">PORTFOLIO CMS</span>
+              <h2 id="visual-editor-inspector-title">편집 메뉴</h2>
+            </div>
+            <div className="visual-editor-inspector-actions">
+              <Link
+                className="admin-button"
+                href="/"
+                rel="noreferrer"
+                target="_blank"
+              >
+                공개 화면
+              </Link>
+              <button
+                className="admin-button"
+                formAction={logoutAction}
+                type="submit"
+              >
+                로그아웃
+              </button>
+              <button
+                aria-label="편집 메뉴 닫기"
+                className="admin-button visual-editor-close"
+                onClick={closeInspector}
+                type="button"
+              >
+                닫기
+              </button>
+            </div>
+          </header>
+
+          <nav className="visual-section-tabs" aria-label="편집할 섹션">
+            {PORTFOLIO_SECTIONS.map((section) => (
+              <button
+                aria-pressed={selectedSection === section.id}
+                className="admin-button"
+                key={section.id}
+                onClick={() => navigateToSection(section.id)}
+                type="button"
+              >
+                {section.number} {section.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="visual-editor-inspector-scroll">
           <section className="admin-edit-section admin-theme-section">
             <div className="admin-section-heading">
               <div>
@@ -2254,20 +2366,24 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             </fieldset>
           ))}
         </div>
-      </section>
+          </section>
+          </div>
 
+          <div className="admin-save-bar">
+            {state.message ? (
+              <p
+                className="admin-form-message"
+                data-status={state.status}
+                role="status"
+              >
+                {state.message}
+              </p>
+            ) : (
+              <p>저장하면 공개 포트폴리오에 즉시 반영됩니다.</p>
+            )}
+            <SubmitButton>변경사항 저장</SubmitButton>
+          </div>
         </aside>
-      </div>
-
-      <div className="admin-save-bar">
-        {state.message ? (
-          <p className="admin-form-message" data-status={state.status} role="status">
-            {state.message}
-          </p>
-        ) : (
-          <p>저장하면 공개 포트폴리오에 즉시 반영됩니다.</p>
-        )}
-        <SubmitButton>변경사항 저장</SubmitButton>
       </div>
     </form>
   );

@@ -146,10 +146,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expectSelectorDeclaration(".space-starfield", /z-index\s*:\s*0/);
     expectSelectorDeclaration(".layout", /position\s*:\s*relative/);
     expectSelectorDeclaration(".layout", /z-index\s*:\s*1/);
-    expectSelectorDeclaration(
-      ".visual-preview-viewport .space-starfield",
-      /position\s*:\s*sticky/,
-    );
+    expect(cssSource).not.toContain(".visual-preview-viewport");
   });
 
   it("경력 TECH 값의 시작점과 첫 줄을 다른 evidence 행에 맞춘다", () => {
@@ -213,23 +210,36 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
   });
 
-  it("관리자 미리보기는 내부 연속 scroll과 내부 navigation을 사용한다", () => {
+  it("관리자 화면은 공개 canvas와 window scroll을 유지하고 편집기만 겹친다", () => {
     expectSelectorDeclaration(
-      ".visual-preview-viewport .portfolio-experience",
+      ".admin-page",
+      /width\s*:\s*100%/,
+    );
+    expectSelectorDeclaration(
+      ".admin-page",
+      /background\s*:\s*#000/,
+    );
+    expectSelectorDeclaration(
+      ".visual-editor-inspector",
+      /position\s*:\s*fixed/,
+    );
+    expectSelectorDeclaration(
+      ".visual-editor-inspector",
+      /width\s*:\s*min\(420px/,
+    );
+    expectSelectorDeclaration(
+      ".visual-editor-inspector-scroll",
       /overflow-y\s*:\s*auto/,
     );
     expectSelectorDeclaration(
-      ".visual-preview-viewport .section-navigation",
-      /position\s*:\s*sticky/,
+      '.visual-editor-inspector[data-open="true"]',
+      /transform\s*:\s*translateX\(0\)/,
     );
-    expectSelectorDeclaration(
-      ".visual-preview-viewport .side-brand",
-      /position\s*:\s*sticky/,
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.visual-editor-inspector\s*\{[\s\S]*?left\s*:\s*0[\s\S]*?width\s*:\s*auto/,
     );
-    expectSelectorDeclaration(
-      ".visual-preview-viewport .side-brand",
-      /top\s*:\s*20px/,
-    );
+    expect(cssSource).not.toContain(".visual-preview-panel");
+    expect(cssSource).not.toContain("height: min(780px");
   });
 
   it("reduced motion과 좁은 viewport에서도 안전하게 reflow한다", () => {

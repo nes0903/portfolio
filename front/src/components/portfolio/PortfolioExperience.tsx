@@ -22,6 +22,7 @@ import type { PortfolioContentViewModel } from "@/lib/content/types";
 interface PortfolioExperienceProps {
   readonly content: PortfolioContentViewModel;
   readonly editor?: PortfolioEditorBridge;
+  readonly scrollMode?: "container" | "window";
   readonly showSkipLink?: boolean;
 }
 
@@ -196,6 +197,7 @@ function serializeInlineText(element: HTMLElement): string {
 export function PortfolioExperience({
   content,
   editor,
+  scrollMode,
   showSkipLink = true,
 }: PortfolioExperienceProps) {
   const [richTextToolbar, setRichTextToolbar] =
@@ -204,6 +206,8 @@ export function PortfolioExperience({
   const richTextRangeRef = useRef<Range | null>(null);
   const richTextRootRef = useRef<HTMLElement | null>(null);
   const editorEnabled = editor !== undefined;
+  const useContainerScroll =
+    scrollMode === undefined ? editorEnabled : scrollMode === "container";
 
   useEffect(() => {
     if (!editorEnabled) return;
@@ -392,7 +396,8 @@ export function PortfolioExperience({
 
       <NavigationTracker
         containerRef={experienceRef}
-        useContainerScroll={editorEnabled}
+        onActiveSectionChange={editor?.onSelectSection}
+        useContainerScroll={useContainerScroll}
       />
 
       {editor && richTextToolbar
