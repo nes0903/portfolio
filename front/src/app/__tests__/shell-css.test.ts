@@ -65,6 +65,37 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       '.section-nav a[aria-current="location"] .nav-label',
       /opacity\s*:\s*1/,
     );
+    expectSelectorDeclaration(".section-nav a", /background\s*:\s*transparent/);
+    expectSelectorDeclaration(".section-nav a", /border\s*:\s*0/);
+    expectSelectorDeclaration(".section-nav a", /border-radius\s*:\s*0/);
+    expectSelectorDeclaration(
+      '.section-nav a[aria-current="location"]',
+      /box-shadow\s*:\s*none/,
+    );
+  });
+
+  it("활성 navigation을 pill 대신 붉은 밑줄로 표시한다", () => {
+    expectSelectorDeclaration(".section-nav a::after", /height\s*:\s*2px/);
+    expectSelectorDeclaration(
+      ".section-nav a::after",
+      /background\s*:\s*var\(--signal\)/,
+    );
+    expectSelectorDeclaration(
+      ".section-nav a::after",
+      /transform\s*:\s*scaleX\(0\)/,
+    );
+    expectSelectorDeclaration(
+      ".section-nav a:hover::after",
+      /opacity\s*:\s*0\.45/,
+    );
+    expectSelectorDeclaration(
+      '.section-nav a[aria-current="location"]::after',
+      /opacity\s*:\s*1/,
+    );
+    expectSelectorDeclaration(
+      '.section-nav a[aria-current="location"]::after',
+      /transform\s*:\s*scaleX\(1\)/,
+    );
   });
 
   it("keyboard focus를 배경색만이 아닌 가시적 outline으로 표시한다", () => {
