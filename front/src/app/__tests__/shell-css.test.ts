@@ -83,7 +83,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).not.toContain("data-carousel-offset");
   });
 
-  it("외곽 card 없이 네 section을 검정 바탕과 테마 색조로 연결한다", () => {
+  it("외곽 card 없이 별 배경 위에 네 section의 원형 색조만 연결한다", () => {
     const portfolioSectionsRule = cssRules.find(
       (rule) => rule.selector === ".portfolio-sections",
     );
@@ -92,7 +92,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       /(?:background|border|border-radius|box-shadow|overflow)\s*:/,
     );
     expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
-    expectSelectorDeclaration(".section", /#000000/);
+    expectSelectorDeclaration(".section", /transparent/);
     expectSelectorDeclaration(".section", /border\s*:\s*0/);
     expectSelectorDeclaration(".section", /border-radius\s*:\s*0/);
     expectSelectorDeclaration(".section", /box-shadow\s*:\s*none/);
@@ -101,6 +101,24 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       '.section[data-section="introduce"]::before',
     );
     expect(cssSource).not.toContain("@keyframes frame-drift");
+    expect(cssSource).not.toMatch(
+      /linear-gradient\(135deg,[\s\S]*?72\.2%/,
+    );
+    expect(cssSource).not.toContain(
+      '.section[data-has-background-image="true"]',
+    );
+  });
+
+  it("별 Canvas를 입력을 막지 않는 고정 배경으로 배치한다", () => {
+    expectSelectorDeclaration(".space-starfield", /position\s*:\s*fixed/);
+    expectSelectorDeclaration(".space-starfield", /pointer-events\s*:\s*none/);
+    expectSelectorDeclaration(".space-starfield", /z-index\s*:\s*0/);
+    expectSelectorDeclaration(".layout", /position\s*:\s*relative/);
+    expectSelectorDeclaration(".layout", /z-index\s*:\s*1/);
+    expectSelectorDeclaration(
+      ".visual-preview-viewport .space-starfield",
+      /position\s*:\s*sticky/,
+    );
   });
 
   it("desktop에서는 side brand 아래 같은 중심축에 index를 표시한다", () => {

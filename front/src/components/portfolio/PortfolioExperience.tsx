@@ -16,6 +16,7 @@ import { PortfolioNavigation } from "@/components/layout/PortfolioNavigation";
 import type { PortfolioSectionId } from "@/components/layout/navigation";
 import type { PortfolioEditorBridge } from "@/components/portfolio/editor-types";
 import { PortfolioSections } from "@/components/portfolio/PortfolioSections";
+import { StarfieldBackground } from "@/components/portfolio/StarfieldBackground";
 import type { PortfolioContentViewModel } from "@/lib/content/types";
 
 interface PortfolioExperienceProps {
@@ -355,6 +356,8 @@ export function PortfolioExperience({
       onClickCapture={editor ? handleEditorClick : undefined}
       style={createThemeStyle(content)}
     >
+      <StarfieldBackground />
+
       {showSkipLink ? (
         <a className="skip" href="#introduce">
           본문으로 이동

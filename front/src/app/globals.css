@@ -67,6 +67,7 @@ body {
   min-height: 100dvh;
   color: var(--paper);
   background: var(--film);
+  isolation: isolate;
 }
 
 a {
@@ -217,6 +218,8 @@ h4 {
 }
 
 .layout {
+  position: relative;
+  z-index: 1;
   display: block;
   padding-left: clamp(92px, 10vw, 156px);
   padding-bottom: clamp(28px, 5vw, 72px);
@@ -237,6 +240,16 @@ h4 {
   isolation: isolate;
 }
 
+.space-starfield {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
 /* || FILM SECTIONS */
 
 .section {
@@ -254,8 +267,7 @@ h4 {
   color: var(--paper);
   background:
     radial-gradient(circle at 82% 8%, rgba(255, 91, 73, 0.08), transparent 24rem),
-    linear-gradient(135deg, transparent 0 72%, rgba(255, 91, 73, 0.035) 72.2%),
-    #000000;
+    transparent;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -282,14 +294,6 @@ h4 {
 .section-background-overlay {
   position: absolute;
   inset: 0;
-}
-
-.section[data-has-background-image="true"] {
-  background-image: linear-gradient(
-    135deg,
-    transparent 0 72%,
-    color-mix(in srgb, var(--signal) 8%, transparent) 72.2%
-  );
 }
 
 .section[data-editor-selected="true"] {
@@ -1938,6 +1942,14 @@ footer {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+.visual-preview-viewport .space-starfield {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin-bottom: -100%;
 }
 
 .visual-preview-viewport .layout {

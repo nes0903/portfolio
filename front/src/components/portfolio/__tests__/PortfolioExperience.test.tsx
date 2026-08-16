@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PortfolioExperience } from "@/components/portfolio/PortfolioExperience";
 import {
@@ -123,8 +123,13 @@ function createContentWithFormattingAcrossSections() {
   };
 }
 
+beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+});
+
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   window.history.replaceState(null, "", "/");
 });
 
@@ -139,6 +144,7 @@ describe("PortfolioExperience visual editor bridge", () => {
     ];
 
     expect(navigation).toHaveLength(1);
+    expect(container.querySelectorAll("[data-starfield]")).toHaveLength(1);
     expect(sections.map((section) => section.id)).toEqual([
       "introduce",
       "career",

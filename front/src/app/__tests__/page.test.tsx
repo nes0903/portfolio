@@ -96,10 +96,12 @@ async function renderHomePage(
 
 beforeEach(() => {
   loaderMock.mockReset();
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
 });
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 describe("portfolio home page shell", () => {
@@ -136,6 +138,7 @@ describe("portfolio home page shell", () => {
     );
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+    expect(container.querySelectorAll("[data-starfield]")).toHaveLength(1);
     expect(container.querySelectorAll("main > section")).toHaveLength(4);
 
     for (const id of [
