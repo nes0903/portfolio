@@ -37,6 +37,13 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       ".site-header",
       /height\s*:\s*var\(--site-header-height\)/,
     );
+    const siteHeaderRule = cssRules.find(
+      (rule) => rule.selector === ".site-header",
+    );
+    expect(siteHeaderRule).toBeDefined();
+    expect(siteHeaderRule?.body).not.toMatch(
+      /(?:background|backdrop-filter|border|color|position|z-index)\s*:/,
+    );
     expectSelectorDeclaration(".layout", /overflow\s*:\s*visible/);
     expectSelectorDeclaration(".layout", /padding-left\s*:/);
     expectSelectorDeclaration(".side-brand", /position\s*:\s*fixed/);

@@ -196,13 +196,7 @@ h4 {
 }
 
 .site-header {
-  position: relative;
-  z-index: 50;
   height: var(--site-header-height);
-  color: var(--paper);
-  background: color-mix(in srgb, var(--film) 97%, transparent);
-  border-bottom: 1px solid #202025;
-  backdrop-filter: blur(18px);
 }
 
 .side-brand {
