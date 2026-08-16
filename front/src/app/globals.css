@@ -202,7 +202,7 @@ h4 {
 .side-brand {
   position: fixed;
   z-index: 46;
-  top: calc(var(--site-header-height) + 8px);
+  top: 20px;
   left: var(--side-rail-left);
   width: var(--side-rail-width);
   min-height: 44px;
@@ -212,6 +212,7 @@ h4 {
   color: var(--signal);
   font: 800 clamp(0.85rem, 1.15vw, 1rem)/1 var(--mono);
   letter-spacing: 0.14em;
+  white-space: nowrap;
   text-decoration: none;
 }
 
@@ -229,17 +230,10 @@ h4 {
 }
 
 .portfolio-sections {
-  --card-radius: var(--portfolio-card-radius, clamp(16px, 1.4vw, 22px));
-
   min-width: 0;
   display: grid;
   gap: 0;
-  overflow: hidden;
   color: var(--paper);
-  background: var(--film);
-  border: 1px solid #303036;
-  border-radius: var(--card-radius);
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.28);
   isolation: isolate;
 }
 
@@ -772,10 +766,6 @@ h4 {
 
 .introduction-skills-heading .eyebrow {
   margin: 0;
-}
-
-.introduction-skills-heading h2 {
-  font-size: clamp(2rem, 3.6vw, 4.4rem);
 }
 
 .skills {
@@ -2000,7 +1990,7 @@ footer {
 .visual-preview-viewport .side-brand {
   position: sticky;
   z-index: 46;
-  top: calc(var(--site-header-height) + 8px);
+  top: 20px;
   left: var(--side-rail-left);
   width: var(--side-rail-width);
   display: flex;

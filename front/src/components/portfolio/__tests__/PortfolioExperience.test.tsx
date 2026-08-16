@@ -135,6 +135,9 @@ describe("PortfolioExperience visual editor bridge", () => {
     const introduce = container.querySelector<HTMLElement>("#introduce");
 
     expect(experience?.style.getPropertyValue("--film")).toBe("#112233");
+    expect(
+      experience?.style.getPropertyValue("--portfolio-card-radius"),
+    ).toBe("");
     expect(introduce?.style.getPropertyValue("--section-background")).toBe(
       "#223344",
     );

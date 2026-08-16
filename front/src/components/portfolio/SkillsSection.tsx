@@ -65,7 +65,9 @@ export function SkillsContent({
     >
       <div className="introduction-skills-heading">
         <p className="eyebrow">기술</p>
-        <h2 id="skills-title">기술</h2>
+        <h2 className="sr-only" id="skills-title">
+          기술
+        </h2>
       </div>
       {groups.length === 0 ? (
         <EmptyState>표시할 기술이 없습니다.</EmptyState>

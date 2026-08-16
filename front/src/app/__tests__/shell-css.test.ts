@@ -48,10 +48,8 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expectSelectorDeclaration(".layout", /padding-left\s*:/);
     expectSelectorDeclaration(".side-brand", /position\s*:\s*fixed/);
     expectSelectorDeclaration(".side-brand", /color\s*:\s*var\(--signal\)/);
-    expectSelectorDeclaration(
-      ".side-brand",
-      /top\s*:\s*calc\(var\(--site-header-height\)/,
-    );
+    expectSelectorDeclaration(".side-brand", /top\s*:\s*20px/);
+    expectSelectorDeclaration(".side-brand", /white-space\s*:\s*nowrap/);
   });
 
   it("세로 navigation link에 최소 44px target과 현재 위치를 제공한다", () => {
@@ -85,16 +83,14 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).not.toContain("data-carousel-offset");
   });
 
-  it("네 section을 하나의 외곽 card 안에서 여백 없이 연결한다", () => {
-    expectSelectorDeclaration(
-      ".portfolio-sections",
-      /border\s*:\s*(?!0\b)[^;]+/,
+  it("외곽 card 없이 네 section의 배경과 내부 구분만 유지한다", () => {
+    const portfolioSectionsRule = cssRules.find(
+      (rule) => rule.selector === ".portfolio-sections",
     );
-    expectSelectorDeclaration(
-      ".portfolio-sections",
-      /border-radius\s*:\s*var\(--card-radius\)/,
+    expect(portfolioSectionsRule).toBeDefined();
+    expect(portfolioSectionsRule?.body).not.toMatch(
+      /(?:background|border|border-radius|box-shadow|overflow)\s*:/,
     );
-    expectSelectorDeclaration(".portfolio-sections", /overflow\s*:\s*hidden/);
     expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
     expectSelectorDeclaration(".section", /#121216/);
     expectSelectorDeclaration(".section", /border\s*:\s*0/);
@@ -140,7 +136,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).toMatch(/pointer-events\s*:\s*none/);
     expect(cssSource).toMatch(/pointer-events\s*:\s*auto/);
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-brand\s*\{[\s\S]*?position\s*:\s*absolute[\s\S]*?height\s*:\s*var\(--site-header-height\)/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-brand\s*\{[\s\S]*?position\s*:\s*absolute[\s\S]*?top\s*:\s*0[\s\S]*?height\s*:\s*var\(--site-header-height\)/,
     );
   });
 
@@ -156,6 +152,10 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expectSelectorDeclaration(
       ".visual-preview-viewport .side-brand",
       /position\s*:\s*sticky/,
+    );
+    expectSelectorDeclaration(
+      ".visual-preview-viewport .side-brand",
+      /top\s*:\s*20px/,
     );
   });
 

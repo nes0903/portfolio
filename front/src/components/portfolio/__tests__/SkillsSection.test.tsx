@@ -117,5 +117,8 @@ describe("SkillsContent", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "기술" }),
     ).toHaveAttribute("id", "skills-title");
+    expect(
+      screen.getByRole("heading", { level: 2, name: "기술" }),
+    ).toHaveClass("sr-only");
   });
 });

@@ -28,7 +28,6 @@ type PortfolioThemeStyle = CSSProperties & {
   readonly "--film": string;
   readonly "--muted": string;
   readonly "--paper": string;
-  readonly "--portfolio-card-radius": string;
   readonly "--signal": string;
   readonly "--signal-soft": string;
 };
@@ -73,7 +72,6 @@ function createThemeStyle(content: PortfolioContentViewModel): PortfolioThemeSty
     "--film": visuals.pageBackgroundColor,
     "--muted": visuals.mutedTextColor,
     "--paper": visuals.textColor,
-    "--portfolio-card-radius": `${visuals.cardRadius}px`,
     "--signal": visuals.accentColor,
     "--signal-soft": visuals.accentColor,
   };

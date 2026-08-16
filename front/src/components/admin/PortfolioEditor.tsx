@@ -1397,22 +1397,6 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
                 }
                 value={content.visuals.accentColor}
               />
-              <label className="admin-field admin-field-wide">
-                <span>카드 모서리 {content.visuals.cardRadius}px</span>
-                <input
-                  max="40"
-                  min="8"
-                  onChange={(event) => {
-                    const cardRadius = Number(event.target.value);
-                    setContent((current) => ({
-                      ...current,
-                      visuals: { ...current.visuals, cardRadius },
-                    }));
-                  }}
-                  type="range"
-                  value={content.visuals.cardRadius}
-                />
-              </label>
             </div>
           </section>
 
