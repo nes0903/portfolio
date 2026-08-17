@@ -210,6 +210,34 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).not.toContain(".project-highlights li::before");
   });
 
+  it("project 링크를 날짜 왼쪽에 두고 날짜를 토글 앞 고정 slot에 맞춘다", () => {
+    expectSelectorDeclaration(
+      ".project-shell",
+      /--project-date-width\s*:\s*92px/,
+    );
+    expectSelectorDeclaration(
+      ".project-shell",
+      /--project-toggle-offset\s*:\s*42px/,
+    );
+    expectSelectorDeclaration(".project-period", /position\s*:\s*absolute/);
+    expectSelectorDeclaration(
+      ".project-period",
+      /right\s*:\s*var\(--project-toggle-offset\)/,
+    );
+    expectSelectorDeclaration(
+      ".project-period",
+      /width\s*:\s*var\(--project-date-width\)/,
+    );
+    expectSelectorDeclaration(
+      ".project-header-actions",
+      /right\s*:\s*calc\(/,
+    );
+    expectSelectorDeclaration(
+      ".project-header-actions",
+      /var\(--project-date-width\)/,
+    );
+  });
+
   it("관리자 project 삭제 버튼을 토글 바깥 우측 영역에 배치한다", () => {
     expectSelectorDeclaration(
       '.project-shell[data-editor="true"]',
@@ -222,7 +250,11 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
     expectSelectorDeclaration(
       '.project-shell[data-editor="true"] .project-header-actions',
-      /right\s*:\s*98px/,
+      /right\s*:\s*calc\([\s\S]*?56px/,
+    );
+    expectSelectorDeclaration(
+      '.project-shell[data-editor="true"] .project-summary',
+      /padding-right\s*:\s*min\(520px, 52vw\)/,
     );
   });
 
@@ -307,6 +339,15 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
     expect(cssSource).toMatch(
       /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-list\s*\{[\s\S]*?display\s*:\s*flex[\s\S]*?overflow-x\s*:\s*auto/,
+    );
+  });
+
+  it("mobile project meta도 링크 왼쪽·날짜 오른쪽 정렬을 유지한다", () => {
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.project-period\s*\{[\s\S]*?right\s*:\s*var\(--project-toggle-offset\)[\s\S]*?bottom\s*:\s*16px/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.project-header-actions\s*\{[\s\S]*?right\s*:\s*calc\([\s\S]*?var\(--project-date-width\)[\s\S]*?left\s*:\s*66px/,
     );
   });
 

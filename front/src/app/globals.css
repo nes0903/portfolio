@@ -1316,6 +1316,10 @@ details[open] summary::after {
 }
 
 .project-shell {
+  --project-date-width: 92px;
+  --project-meta-gap: 16px;
+  --project-toggle-offset: 42px;
+
   position: relative;
   min-width: 0;
   border-top: 1px solid #414147;
@@ -1347,9 +1351,14 @@ details[open] summary::after {
   position: relative;
   min-height: 68px;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 58px minmax(0, 1fr);
   gap: clamp(16px, 2.5vw, 34px);
-  padding: 12px 30px 12px 0;
+  padding: 12px
+    calc(
+      var(--project-toggle-offset) + var(--project-date-width) +
+        var(--project-meta-gap)
+    )
+    12px 0;
 }
 
 .project-summary h3 {
@@ -1372,26 +1381,34 @@ details[open] summary::after {
 }
 
 .project-period {
-  align-self: center;
-  justify-self: end;
-  min-width: 0;
+  position: absolute;
+  top: 50%;
+  right: var(--project-toggle-offset);
+  width: var(--project-date-width);
   color: var(--signal-soft);
   font: 600 0.72rem/1.4 var(--mono);
   text-align: right;
+  transform: translateY(-50%);
 }
 
 .project-header-actions {
   position: absolute;
   z-index: 3;
   top: 22px;
-  right: 42px;
+  right: calc(
+    var(--project-toggle-offset) + var(--project-date-width) +
+      var(--project-meta-gap)
+  );
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
 .project-shell[data-editor="true"] .project-header-actions {
-  right: 98px;
+  right: calc(
+    56px + var(--project-toggle-offset) + var(--project-date-width) +
+      var(--project-meta-gap)
+  );
 }
 
 .project-inline-delete {
@@ -1416,11 +1433,15 @@ details[open] summary::after {
 }
 
 .project-shell[data-project-link-count="1"] .project-summary {
-  padding-right: 132px;
+  padding-right: 242px;
 }
 
 .project-shell[data-project-link-count="2"] .project-summary {
-  padding-right: 236px;
+  padding-right: 352px;
+}
+
+.project-shell[data-editor="true"] .project-summary {
+  padding-right: min(520px, 52vw);
 }
 
 .project-text-link {
@@ -1937,21 +1958,48 @@ footer {
   }
 
   .project-summary {
-    grid-template-columns: 52px minmax(0, 1fr) auto;
+    min-height: 112px;
+    grid-template-columns: 52px minmax(0, 1fr);
     gap: 14px;
+    padding-right: 28px;
+    padding-bottom: 52px;
   }
 
   .project-shell[data-project-link-count="1"] .project-summary,
-  .project-shell[data-project-link-count="2"] .project-summary {
+  .project-shell[data-project-link-count="2"] .project-summary,
+  .project-shell[data-editor="true"] .project-summary {
     min-height: 112px;
     padding-right: 28px;
     padding-bottom: 52px;
   }
 
+  .project-summary::after {
+    top: auto;
+    bottom: 18px;
+  }
+
+  .project-period {
+    top: auto;
+    right: var(--project-toggle-offset);
+    bottom: 16px;
+    transform: none;
+  }
+
   .project-header-actions {
-    top: 72px;
-    right: auto;
+    top: auto;
+    right: calc(
+      var(--project-toggle-offset) + var(--project-date-width) + 12px
+    );
+    bottom: 14px;
     left: 66px;
+    justify-content: flex-end;
+    overflow-x: auto;
+  }
+
+  .project-shell[data-editor="true"] .project-header-actions {
+    right: calc(
+      56px + var(--project-toggle-offset) + var(--project-date-width) + 12px
+    );
   }
 
   .project {
@@ -2036,12 +2084,14 @@ footer {
   .project-summary {
     grid-template-columns: 40px minmax(0, 1fr);
     row-gap: 7px;
-    min-height: 68px;
+    min-height: 128px;
     padding: 12px 26px 12px 0;
+    padding-bottom: 54px;
   }
 
   .project-shell[data-project-link-count="1"] .project-summary,
-  .project-shell[data-project-link-count="2"] .project-summary {
+  .project-shell[data-project-link-count="2"] .project-summary,
+  .project-shell[data-editor="true"] .project-summary {
     min-height: 128px;
     padding-bottom: 54px;
   }
@@ -2056,19 +2106,31 @@ footer {
   }
 
   .project-period {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: start;
-    text-align: left;
+    top: auto;
+    right: var(--project-toggle-offset);
+    bottom: 16px;
+    text-align: right;
+    transform: none;
   }
 
   .project-summary::after {
-    top: calc(50% - 0.8rem);
+    top: auto;
+    bottom: 18px;
   }
 
   .project-header-actions {
-    top: 88px;
+    top: auto;
+    right: calc(
+      var(--project-toggle-offset) + var(--project-date-width) + 10px
+    );
+    bottom: 14px;
     left: 54px;
+  }
+
+  .project-shell[data-editor="true"] .project-header-actions {
+    right: calc(
+      56px + var(--project-toggle-offset) + var(--project-date-width) + 10px
+    );
   }
 
   .project {
