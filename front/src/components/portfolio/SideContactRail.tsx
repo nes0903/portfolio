@@ -23,15 +23,15 @@ const CONTACT_CHANNELS: readonly Contact["channel"][] = [
 ];
 
 /**
- * 본문 section 대신 고정 side rail과 mobile 하단 bar에서 연락처를 표시한다.
+ * desktop 고정 rail과 mobile 일반 하단 section에서 연락처를 표시한다.
  */
 export function SideContactRail({
   contacts,
   editor,
 }: SideContactRailProps) {
   return (
-    <aside
-      aria-label="연락처"
+    <section
+      aria-labelledby="contact-title"
       className="side-contact-rail"
       data-editor-selected={
         editor?.selectedSection === "contact" ? "true" : undefined
@@ -40,7 +40,9 @@ export function SideContactRail({
       onClick={editor ? () => editor.onSelectSection("contact") : undefined}
       tabIndex={-1}
     >
-      <strong className="side-contact-heading">CONTACT</strong>
+      <h2 className="side-contact-heading" id="contact-title">
+        CONTACT
+      </h2>
       {contacts.length > 0 ? (
         <ul className="side-contact-list">
           {contacts.map((contact) => {
@@ -156,6 +158,6 @@ export function SideContactRail({
           + 연락처
         </button>
       ) : null}
-    </aside>
+    </section>
   );
 }

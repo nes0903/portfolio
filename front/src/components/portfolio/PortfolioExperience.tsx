@@ -827,7 +827,6 @@ export function PortfolioExperience({
       <div className="side-rail">
         <div
           className="section-navigation"
-          data-scroll-visible="false"
           data-section-navigation
         >
           <PortfolioNavigation
@@ -835,7 +834,6 @@ export function PortfolioExperience({
             className="section-nav"
           />
         </div>
-        <SideContactRail contacts={content.contacts} editor={editor} />
       </div>
 
       <div className="shell layout">
@@ -847,6 +845,7 @@ export function PortfolioExperience({
           >
             <PortfolioSections content={content} editor={editor} />
           </main>
+          <SideContactRail contacts={content.contacts} editor={editor} />
         </div>
       </div>
 

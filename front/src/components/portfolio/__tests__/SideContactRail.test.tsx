@@ -55,20 +55,23 @@ function createEditor(
 }
 
 describe("SideContactRail", () => {
-  it("contact anchor와 loader 순서의 라벨·값을 고정 aside에 표시한다", () => {
+  it("contact anchor와 loader 순서의 라벨·값을 CONTACT section에 표시한다", () => {
     const { container } = render(<SideContactRail contacts={contacts} />);
-    const aside = screen.getByRole("complementary", { name: "연락처" });
-    const items = within(aside).getAllByRole("listitem");
+    const section = screen.getByRole("region", { name: "CONTACT" });
+    const items = within(section).getAllByRole("listitem");
 
-    expect(aside).toHaveAttribute("id", "contact");
-    expect(aside).toHaveAttribute("tabindex", "-1");
+    expect(section).toHaveAttribute("id", "contact");
+    expect(section).toHaveAttribute("tabindex", "-1");
+    expect(
+      within(section).getByRole("heading", { level: 2, name: "CONTACT" }),
+    ).toHaveAttribute("id", "contact-title");
     expect(items).toHaveLength(contacts.length);
     expect(items.map((item) => item.querySelector("strong")?.textContent))
       .toEqual(contacts.map((contact) => contact.label));
     expect(
       items.map((item) => item.querySelector(".side-contact-value")?.textContent),
     ).toEqual(contacts.map((contact) => contact.value));
-    expect(container.querySelector("section#contact")).toBeNull();
+    expect(container.querySelector("section#contact")).toBe(section);
   });
 
   it("Email은 텍스트, Phone은 tel, 외부 채널은 HTTPS 새 창 링크로 표시한다", () => {
@@ -107,8 +110,8 @@ describe("SideContactRail", () => {
       <SideContactRail contacts={contacts} editor={editor} />,
     );
 
-    const aside = screen.getByRole("complementary", { name: "연락처" });
-    expect(aside).toHaveAttribute("data-editor-selected", "true");
+    const section = screen.getByRole("region", { name: "CONTACT" });
+    expect(section).toHaveAttribute("data-editor-selected", "true");
     expect(
       container.querySelector('[data-editor-field="contacts:email:label"]'),
     ).toHaveAttribute("contenteditable", "true");

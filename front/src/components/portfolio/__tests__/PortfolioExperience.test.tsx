@@ -162,16 +162,17 @@ describe("PortfolioExperience visual editor bridge", () => {
     ];
 
     expect(navigation).toHaveLength(1);
+    expect(navigation[0]).not.toHaveAttribute("data-scroll-visible");
     expect(container.querySelectorAll("[data-starfield]")).toHaveLength(1);
     expect(sections.map((section) => section.id)).toEqual([
       "introduce",
       "career",
       "side-projects",
     ]);
-    expect(container.querySelector("section#contact")).toBeNull();
-    expect(
-      screen.getByRole("complementary", { name: "연락처" }),
-    ).toHaveAttribute("id", "contact");
+    expect(container.querySelector("main > section#contact")).toBeNull();
+    const contact = screen.getByRole("region", { name: "CONTACT" });
+    expect(contact).toHaveAttribute("id", "contact");
+    expect(container.querySelector("main")?.nextElementSibling).toBe(contact);
     expect(container.querySelector("[data-carousel]")).not.toBeInTheDocument();
     expect(container.querySelector("[data-carousel-card]")).not.toBeInTheDocument();
     sections.forEach((section) => {

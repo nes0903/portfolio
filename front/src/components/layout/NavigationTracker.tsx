@@ -18,8 +18,6 @@ interface NavigationTrackerProps {
 const sectionIds = new Set<PortfolioScrollSectionId>(
   PORTFOLIO_SECTIONS.map((section) => section.id),
 );
-const MOBILE_NAVIGATION_HIDE_DELAY = 1_200;
-
 /**
  * 문자열이 승인된 portfolio section id인지 좁힌다.
  */
@@ -30,7 +28,7 @@ function isPortfolioScrollSectionId(
 }
 
 /**
- * 네 section의 연속 스크롤 위치와 세로 navigation을 동기화한다.
+ * 세 section의 연속 스크롤 위치와 navigation을 동기화한다.
  */
 export function NavigationTracker({
   containerRef,
@@ -67,17 +65,13 @@ export function NavigationTracker({
     if (!navigation || sectionElements.size === 0) return;
 
     const resolvedContainer: HTMLDivElement = container;
-    const resolvedNavigation: HTMLElement = navigation;
     const scrollRoot = useContainerScroll ? resolvedContainer : null;
     const scrollTarget: Window | HTMLElement = scrollRoot ?? window;
     const managesHistory = !useContainerScroll;
     const intersectingSections = new Set<PortfolioScrollSectionId>();
     let activeSection: PortfolioScrollSectionId | undefined;
-    let hideNavigationTimer: number | undefined;
     let pendingFocusFrame: number | undefined;
     let pendingInitialFrame: number | undefined;
-    let navigationFocused = false;
-    let pointerActive = false;
     let suppressObserver = false;
 
     function setCurrentSection(
@@ -239,63 +233,11 @@ export function NavigationTracker({
       }
     }
 
-    function clearHideNavigationTimer(): void {
-      if (hideNavigationTimer === undefined) return;
-
-      window.clearTimeout(hideNavigationTimer);
-      hideNavigationTimer = undefined;
-    }
-
-    function scheduleNavigationHide(): void {
-      clearHideNavigationTimer();
-      hideNavigationTimer = window.setTimeout(() => {
-        hideNavigationTimer = undefined;
-
-        if (pointerActive || navigationFocused) {
-          scheduleNavigationHide();
-          return;
-        }
-
-        resolvedNavigation.dataset.scrollVisible = "false";
-      }, MOBILE_NAVIGATION_HIDE_DELAY);
-    }
-
-    function revealNavigation(): void {
-      resolvedNavigation.dataset.scrollVisible = "true";
-      scheduleNavigationHide();
-    }
-
     function handleScroll(): void {
-      revealNavigation();
-
       if (typeof window.IntersectionObserver !== "function") {
         updateFromGeometry();
       }
     }
-
-    function handleNavigationFocus(): void {
-      navigationFocused = true;
-      revealNavigation();
-    }
-
-    function handleNavigationBlur(event: FocusEvent): void {
-      const nextTarget = event.relatedTarget;
-      navigationFocused =
-        nextTarget instanceof Node && resolvedNavigation.contains(nextTarget);
-      scheduleNavigationHide();
-    }
-
-    function handlePointerDown(): void {
-      pointerActive = true;
-      revealNavigation();
-    }
-
-    function handlePointerEnd(): void {
-      pointerActive = false;
-      scheduleNavigationHide();
-    }
-
-    resolvedNavigation.dataset.scrollVisible = "false";
 
     const initialHash = managesHistory ? window.location.hash.slice(1) : "";
     const initialSection = isPortfolioScrollSectionId(initialHash)
@@ -359,11 +301,6 @@ export function NavigationTracker({
     window.addEventListener("resize", updateFromGeometry);
     window.addEventListener("hashchange", handleHistoryNavigation);
     window.addEventListener("popstate", handleHistoryNavigation);
-    resolvedNavigation.addEventListener("focusin", handleNavigationFocus);
-    resolvedNavigation.addEventListener("focusout", handleNavigationBlur);
-    resolvedNavigation.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("pointerup", handlePointerEnd);
-    window.addEventListener("pointercancel", handlePointerEnd);
 
     return () => {
       observer?.disconnect();
@@ -372,13 +309,6 @@ export function NavigationTracker({
       window.removeEventListener("resize", updateFromGeometry);
       window.removeEventListener("hashchange", handleHistoryNavigation);
       window.removeEventListener("popstate", handleHistoryNavigation);
-      resolvedNavigation.removeEventListener("focusin", handleNavigationFocus);
-      resolvedNavigation.removeEventListener("focusout", handleNavigationBlur);
-      resolvedNavigation.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("pointerup", handlePointerEnd);
-      window.removeEventListener("pointercancel", handlePointerEnd);
-      clearHideNavigationTimer();
-
       if (pendingFocusFrame !== undefined) {
         window.cancelAnimationFrame(pendingFocusFrame);
       }

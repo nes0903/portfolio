@@ -258,17 +258,23 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     );
   });
 
-  it("연락처를 section 대신 고정 side rail에 배치한다", () => {
+  it("desktop 연락처를 좌측 하단 고정 region으로 배치한다", () => {
+    expectSelectorDeclaration(
+      ".side-contact-rail",
+      /position\s*:\s*fixed/,
+    );
+    expectSelectorDeclaration(
+      ".side-contact-rail",
+      /bottom\s*:\s*20px/,
+    );
     expectSelectorDeclaration(
       ".side-contact-rail",
       /overflow-y\s*:\s*auto/,
     );
     expectSelectorDeclaration(".side-contact-value", /overflow-wrap\s*:\s*anywhere/);
     expectSelectorDeclaration(".side-contact-list", /display\s*:\s*grid/);
-    expectSelectorDeclaration(".side-contact-rail", /margin-top\s*:\s*auto/);
-    expectSelectorDeclaration(".side-rail", /bottom\s*:\s*20px/);
     expectSelectorDeclaration(
-      '.portfolio-experience[data-editor-preview="true"] .side-rail',
+      '.portfolio-experience[data-editor-preview="true"] .side-contact-rail',
       /bottom\s*:\s*124px/,
     );
     expect(cssSource).not.toContain('.section[data-section="contact"]');
@@ -316,29 +322,33 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expectSelectorDeclaration(".section-nav ol", /justify-items\s*:\s*center/);
   });
 
-  it("mobile에서는 scroll 중에만 navigation을 노출한다", () => {
+  it("mobile에서는 투명 상단 header에 PORTFOLIO와 숫자 navigation을 고정한다", () => {
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-navigation\s*\{[\s\S]*?opacity\s*:\s*0/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.site-header\s*\{[\s\S]*?position\s*:\s*sticky[\s\S]*?top\s*:\s*0[\s\S]*?background\s*:\s*transparent/,
     );
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-navigation\s*\{[\s\S]*?top\s*:\s*50%/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-brand\s*\{[\s\S]*?position\s*:\s*fixed[\s\S]*?top\s*:\s*0[\s\S]*?height\s*:\s*var\(--site-header-height\)/,
     );
     expect(cssSource).toMatch(
-      /\.section-navigation\[data-scroll-visible="true"\][\s\S]*?opacity\s*:\s*1/,
-    );
-    expect(cssSource).toMatch(/pointer-events\s*:\s*none/);
-    expect(cssSource).toMatch(/pointer-events\s*:\s*auto/);
-    expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-brand\s*\{[\s\S]*?position\s*:\s*absolute[\s\S]*?top\s*:\s*0[\s\S]*?height\s*:\s*var\(--site-header-height\)/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-navigation\s*\{[\s\S]*?position\s*:\s*fixed[\s\S]*?top\s*:\s*0[\s\S]*?right\s*:\s*12px[\s\S]*?background\s*:\s*transparent/,
     );
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-rail\s*\{[\s\S]*?position\s*:\s*fixed[\s\S]*?bottom\s*:\s*calc\(8px \+ env\(safe-area-inset-bottom\)\)/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-nav ol\s*\{[\s\S]*?display\s*:\s*flex/,
     );
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-rail\s*\{[\s\S]*?margin-top\s*:\s*0/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.section-nav \.nav-label,[\s\S]*?clip\s*:\s*rect\(0, 0, 0, 0\)/,
+    );
+    expect(cssSource).not.toContain(
+      '.section-navigation[data-scroll-visible="true"]',
     );
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-list\s*\{[\s\S]*?display\s*:\s*flex[\s\S]*?overflow-x\s*:\s*auto/,
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-rail\s*\{[\s\S]*?position\s*:\s*static[\s\S]*?max-height\s*:\s*none[\s\S]*?background\s*:\s*transparent/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-list\s*\{[\s\S]*?grid-template-columns\s*:\s*repeat\(2, minmax\(0, 1fr\)\)/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-heading\s*\{[\s\S]*?font\s*:\s*800 clamp\(2\.7rem, 13vw, 5rem\)/,
     );
   });
 
@@ -376,7 +386,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       /padding-bottom\s*:\s*calc\(108px \+ env\(safe-area-inset-bottom\)\)/,
     );
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.admin-page \.visual-editor-canvas \.portfolio-experience\s*\{[\s\S]*?padding-bottom\s*:\s*calc\(260px \+ env\(safe-area-inset-bottom\)\)/,
+      /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.admin-page \.visual-editor-canvas \.portfolio-experience\s*\{[\s\S]*?padding-bottom\s*:\s*calc\(132px \+ env\(safe-area-inset-bottom\)\)/,
     );
     expect(cssSource).toMatch(
       /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.inline-admin-bar\s*\{[\s\S]*?left\s*:\s*8px[\s\S]*?bottom\s*:\s*calc\(8px \+ env\(safe-area-inset-bottom\)\)/,

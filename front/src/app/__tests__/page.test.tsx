@@ -123,7 +123,7 @@ describe("portfolio home page shell", () => {
     expect(screen.getAllByRole("navigation")).toHaveLength(1);
   });
 
-  it("세 개 focusable section과 고정 연락처 aside를 렌더링한다", async () => {
+  it("세 개 focusable section과 main 다음 CONTACT region을 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
@@ -151,10 +151,10 @@ describe("portfolio home page shell", () => {
       expect(section).toHaveAttribute("aria-labelledby", `${id}-title`);
       expect(container.querySelector(`#${id}-title`)).toBeInTheDocument();
     }
-    expect(container.querySelector("section#contact")).toBeNull();
-    expect(
-      screen.getByRole("complementary", { name: "연락처" }),
-    ).toHaveAttribute("id", "contact");
+    expect(container.querySelector("main > section#contact")).toBeNull();
+    const contact = screen.getByRole("region", { name: "CONTACT" });
+    expect(contact).toHaveAttribute("id", "contact");
+    expect(container.querySelector("main")?.nextElementSibling).toBe(contact);
   });
 
   it("소개 h1 하나와 이후 section h2를 사용하고 heading level을 건너뛰지 않는다", async () => {
@@ -218,7 +218,7 @@ describe("portfolio home page shell", () => {
       ).toHaveTextContent(message);
     }
     expect(
-      screen.getByRole("complementary", { name: "연락처" }),
+      screen.getByRole("region", { name: "CONTACT" }),
     ).toBeInTheDocument();
   });
 

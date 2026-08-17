@@ -89,7 +89,7 @@ function TrackerTestPage({
 
   return (
     <div data-testid="portfolio" ref={containerRef}>
-      <div data-scroll-visible="false" data-section-navigation>
+      <div data-section-navigation>
         <PortfolioNavigation ariaLabel="페이지 목차" className="section-nav" />
       </div>
       <main data-scroll-sections>
@@ -322,39 +322,6 @@ describe("NavigationTracker continuous scroll navigation", () => {
 
     expectCurrentSection("side-projects");
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(callsBeforeLegacyHash);
-  });
-
-  it("scroll 중 모바일 메뉴를 표시하고 1.2초 뒤 숨긴다", () => {
-    vi.useFakeTimers();
-    renderTracker();
-    const navigation = document.querySelector<HTMLElement>(
-      "[data-section-navigation]",
-    );
-    if (!navigation) throw new Error("section navigation이 필요합니다");
-
-    fireEvent.scroll(window);
-    expect(navigation).toHaveAttribute("data-scroll-visible", "true");
-
-    act(() => vi.advanceTimersByTime(1_200));
-    expect(navigation).toHaveAttribute("data-scroll-visible", "false");
-  });
-
-  it("메뉴가 focus된 동안 자동 숨김을 연기한다", () => {
-    vi.useFakeTimers();
-    renderTracker();
-    const navigation = document.querySelector<HTMLElement>(
-      "[data-section-navigation]",
-    );
-    const careerLink = screen.getByRole("link", { name: "경력" });
-    if (!navigation) throw new Error("section navigation이 필요합니다");
-
-    careerLink.focus();
-    act(() => vi.advanceTimersByTime(1_200));
-    expect(navigation).toHaveAttribute("data-scroll-visible", "true");
-
-    careerLink.blur();
-    act(() => vi.advanceTimersByTime(1_200));
-    expect(navigation).toHaveAttribute("data-scroll-visible", "false");
   });
 
   it("관리자 미리보기는 자체 scroll root를 관찰하고 URL을 변경하지 않는다", () => {
