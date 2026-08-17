@@ -52,6 +52,43 @@ describe("portfolio visual schema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("최근 글자색을 대문자 HEX 최대 6개로 검증한다", () => {
+    const content = createDocumentWithoutVisuals();
+    const parsed = portfolioDocumentContentSchema.parse({
+      ...content,
+      visuals: {
+        ...DEFAULT_PORTFOLIO_VISUALS,
+        recentTextColors: ["#f28c28", "#00aeef"],
+      },
+    });
+
+    expect(parsed.visuals.recentTextColors).toEqual([
+      "#F28C28",
+      "#00AEEF",
+    ]);
+    expect(
+      portfolioDocumentContentSchema.safeParse({
+        ...content,
+        visuals: {
+          ...DEFAULT_PORTFOLIO_VISUALS,
+          recentTextColors: Array.from(
+            { length: 7 },
+            (_, index) => `#00000${index}`,
+          ),
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      portfolioDocumentContentSchema.safeParse({
+        ...content,
+        visuals: {
+          ...DEFAULT_PORTFOLIO_VISUALS,
+          recentTextColors: ["#F28C28", "#f28c28"],
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("검증된 섹션 배경 이미지와 표시 위치만 허용한다", () => {
     const content = createDocumentWithoutVisuals();
     const result = portfolioDocumentContentSchema.safeParse({

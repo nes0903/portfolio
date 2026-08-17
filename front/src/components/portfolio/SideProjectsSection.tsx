@@ -9,6 +9,8 @@ import {
 } from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
 import { PortfolioImageGallery } from "@/components/portfolio/CareerWorkImages";
+import { InlineImageEditor } from "@/components/portfolio/InlineImageEditor";
+import { parseNotionListLine } from "@/components/portfolio/notion-list";
 import type { PortfolioSectionVisual, SideProject } from "@/lib/content/types";
 import { DEFAULT_SECTION_VISUAL } from "@/lib/content/schema";
 
@@ -44,17 +46,23 @@ export function SideProjectsSection({
             const hasApprovedLink =
               project.links.repository !== undefined ||
               project.links.demo !== undefined;
-            const approvedLinkCount =
-              Number(project.links.repository !== undefined) +
-              Number(project.links.demo !== undefined);
+
+            const approvedLinkCount = editor
+              ? 2
+              : Number(project.links.repository !== undefined) +
+                Number(project.links.demo !== undefined);
 
             return (
-              <details
-                className="project"
+              <div
+                className="project-shell"
+                data-editor={editor ? "true" : undefined}
                 data-project-link-count={approvedLinkCount}
                 key={project.id}
-                name="side-projects-accordion"
               >
+                <details
+                  className="project"
+                  name="side-projects-accordion"
+                >
                 <summary className="project-summary">
                   <span aria-hidden="true" className="project-index">
                     {String(projectIndex + 1).padStart(2, "0")}
@@ -82,33 +90,6 @@ export function SideProjectsSection({
                     ) : null}
                   </span>
                 </summary>
-
-                {hasApprovedLink ? (
-                  <div className="actions project-header-actions">
-                    {project.links.repository ? (
-                      <a
-                        className="btn alt"
-                        href={project.links.repository}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
-                      >
-                        Repository
-                      </a>
-                    ) : null}
-                    {project.links.demo ? (
-                      <a
-                        className="btn alt"
-                        href={project.links.demo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${stripInlineFormatting(project.name)} Link (새 창)`}
-                      >
-                        Link
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
 
                 <ul
                   className="chips project-tech"
@@ -138,37 +119,136 @@ export function SideProjectsSection({
                   >
                     <FormattedText text={project.description} />
                   </p>
-                  {project.highlights.length > 0 ? (
+                  {editor || project.highlights.length > 0 ? (
                     <ul
                       aria-label={`${stripInlineFormatting(project.name)} 상세 작업`}
                       className="project-highlights"
+                      {...createEditableTextProps(
+                        editor,
+                        `sideProjectHighlights:${project.id}:all`,
+                        { richText: "notion-list" },
+                      )}
                     >
-                      {project.highlights.map((highlight, highlightIndex) => (
-                        <li
-                          key={`${highlight}-${highlightIndex}`}
-                          {...createEditableTextProps(
-                            editor,
-                            `sideProjectHighlights:${project.id}:${highlightIndex}`,
-                          )}
-                        >
-                          <FormattedText text={highlight} />
-                        </li>
-                      ))}
+                      {(project.highlights.length > 0
+                        ? project.highlights
+                        : [""]
+                      ).map((highlight, highlightIndex) => {
+                        const line = parseNotionListLine(highlight);
+
+                        return (
+                          <li
+                            data-bullet={line.isBullet ? "true" : undefined}
+                            key={`${highlight}-${highlightIndex}`}
+                          >
+                            <FormattedText text={line.text} />
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : null}
 
                   {project.images.length > 0 ? (
                     <PortfolioImageGallery
                       contextLabel="프로젝트"
+                      editor={editor}
                       heading="Project Screenshots"
                       images={project.images}
+                      kind="project"
+                      ownerId={project.id}
                       title={stripInlineFormatting(project.name)}
                     />
                   ) : null}
+                  <InlineImageEditor
+                    editor={editor}
+                    images={project.images}
+                    kind="project"
+                    ownerId={project.id}
+                    title={stripInlineFormatting(project.name)}
+                  />
                 </div>
-              </details>
+                </details>
+
+                {editor ? (
+                  <span className="project-header-actions inline-project-link-editor">
+                    <input
+                      aria-label={`${stripInlineFormatting(project.name)} Repository URL`}
+                      onChange={(event) =>
+                        editor.onChangeProjectLink?.(
+                          project.id,
+                          "repository",
+                          event.currentTarget.value,
+                        )
+                      }
+                      placeholder="Repository URL"
+                      type="url"
+                      value={project.links.repository ?? ""}
+                    />
+                    <input
+                      aria-label={`${stripInlineFormatting(project.name)} Link URL`}
+                      onChange={(event) =>
+                        editor.onChangeProjectLink?.(
+                          project.id,
+                          "demo",
+                          event.currentTarget.value,
+                        )
+                      }
+                      placeholder="Link URL"
+                      type="url"
+                      value={project.links.demo ?? ""}
+                    />
+                  </span>
+                ) : hasApprovedLink ? (
+                  <span className="project-header-actions">
+                    {project.links.repository ? (
+                      <a
+                        className="project-text-link"
+                        href={project.links.repository}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${stripInlineFormatting(project.name)} Repository (새 창)`}
+                      >
+                        Repository ↗
+                      </a>
+                    ) : null}
+                    {project.links.demo ? (
+                      <a
+                        className="project-text-link"
+                        href={project.links.demo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${stripInlineFormatting(project.name)} Link (새 창)`}
+                      >
+                        Link ↗
+                      </a>
+                    ) : null}
+                  </span>
+                ) : null}
+                {editor ? (
+                  <button
+                    aria-label={`${stripInlineFormatting(project.name)} 프로젝트 삭제`}
+                    className="project-inline-delete"
+                    onClick={() => {
+                      if (window.confirm(`${stripInlineFormatting(project.name)} 프로젝트를 삭제할까요?`)) {
+                        editor.onDeleteItem?.("project", project.id);
+                      }
+                    }}
+                    type="button"
+                  >
+                    삭제
+                  </button>
+                ) : null}
+              </div>
             );
           })}
+          {editor ? (
+            <button
+              className="inline-add-row"
+              onClick={() => editor.onAddItem?.("project")}
+              type="button"
+            >
+              + 프로젝트 추가
+            </button>
+          ) : null}
         </div>
       )}
     </PortfolioSection>

@@ -1,5 +1,4 @@
 import { CareerSection } from "@/components/portfolio/CareerSection";
-import { ContactSection } from "@/components/portfolio/ContactSection";
 import { IntroductionSection } from "@/components/portfolio/IntroductionSection";
 import { SideProjectsSection } from "@/components/portfolio/SideProjectsSection";
 import type { PortfolioEditorBridge } from "@/components/portfolio/editor-types";
@@ -11,7 +10,7 @@ interface PortfolioSectionsProps {
 }
 
 /**
- * 전체 portfolio view model을 정확히 네 개 section으로 렌더링한다.
+ * 전체 portfolio view model의 세 개 scroll section을 렌더링한다.
  */
 export function PortfolioSections({ content, editor }: PortfolioSectionsProps) {
   return (
@@ -33,12 +32,6 @@ export function PortfolioSections({ content, editor }: PortfolioSectionsProps) {
         editor={editor}
         sideProjects={content.sideProjects}
         visual={content.visuals.sections["side-projects"]}
-      />
-
-      <ContactSection
-        contacts={content.contacts}
-        editor={editor}
-        visual={content.visuals.sections.contact}
       />
     </>
   );

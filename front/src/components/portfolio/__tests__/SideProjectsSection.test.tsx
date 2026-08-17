@@ -52,7 +52,7 @@ const sideProjects: readonly SideProject[] = [
 function projectDisclosures(container: HTMLElement): HTMLDetailsElement[] {
   return [
     ...container.querySelectorAll<HTMLDetailsElement>(
-      "section#side-projects .projects > details.project",
+      "section#side-projects .projects > .project-shell > details.project",
     ),
   ];
 }
@@ -118,6 +118,7 @@ describe("SideProjectsSection", () => {
     }
     expect(screen.queryByText("프로젝트 근거 보기")).toBeNull();
     expect(container.querySelector("img, picture")).toBeNull();
+    expect(screen.queryByText("+ 이미지 추가")).toBeNull();
   });
 
   it("모든 project를 같은 exclusive details 그룹으로 묶는다", () => {
@@ -132,7 +133,7 @@ describe("SideProjectsSection", () => {
     expect(disclosures.every((item) => item.open === false)).toBe(true);
   });
 
-  it("펼친 project에서 링크와 기술을 본문보다 앞에 배치하고 링크 클릭 시 열린 상태를 유지한다", () => {
+  it("접힌 project에도 text link를 유지하고 링크 클릭은 disclosure를 열지 않는다", () => {
     const { container } = render(
       <SideProjectsSection sideProjects={[sideProjects[0]!]} />,
     );
@@ -140,37 +141,51 @@ describe("SideProjectsSection", () => {
     if (!project) throw new Error("project disclosure가 필요합니다");
 
     const summary = project.querySelector<HTMLElement>(":scope > summary");
-    if (!summary) throw new Error("project summary가 필요합니다");
-    fireEvent.click(summary);
+    const shell = project.closest<HTMLElement>(".project-shell");
+    if (!summary || !shell) throw new Error("project header가 필요합니다");
 
-    const actions = project.querySelector<HTMLElement>(
+    const actions = shell.querySelector<HTMLElement>(
       ":scope > .project-header-actions",
     );
+    const link = within(shell).getByRole("link", {
+      name: "First Project Link (새 창)",
+    });
     const skills = within(project).getByRole("list", {
       name: "First Project 기술",
+      hidden: true,
     });
     const body = project.querySelector<HTMLElement>(":scope > .project-body");
 
-    expect(project.open).toBe(true);
+    expect(project.open).toBe(false);
     expect(actions).not.toBeNull();
+    expect(link).toHaveTextContent("Link ↗");
+    expect(link).toHaveClass("project-text-link");
+    expect(link).not.toHaveClass("btn", "alt");
     expect(skills).toHaveClass("project-tech");
     expect(skills.nextElementSibling).toBe(body);
     expect(body?.querySelector(".project-tech, .project-header-actions")).toBeNull();
 
-    fireEvent.click(
-      within(project).getByRole("link", {
+    fireEvent.click(link);
+    expect(project.open).toBe(false);
+
+    fireEvent.click(summary);
+    expect(project.open).toBe(true);
+    expect(
+      within(shell).getByRole("link", {
         name: "First Project Link (새 창)",
       }),
-    );
-    expect(project.open).toBe(true);
+    ).toBeInTheDocument();
   });
 
   it("관리자 미리보기의 기존 project inline editor field를 유지한다", () => {
+    const onDeleteItem = vi.fn();
     const editor: PortfolioEditorBridge = {
       onChangeIntroductionTextBlock: vi.fn(),
+      onChangeRecentTextColors: vi.fn(),
       onSelectIntroductionTextBlock: vi.fn(),
       onSelectSection: vi.fn(),
       onTextCommit: vi.fn(),
+      onDeleteItem,
       selectedIntroductionTextBlockId: null,
       selectedSection: "side-projects",
     };
@@ -182,12 +197,31 @@ describe("SideProjectsSection", () => {
       "sideProjects:first-project:name",
       "sideProjects:first-project:period",
       "sideProjects:first-project:description",
-      "sideProjectHighlights:first-project:0",
+      "sideProjectHighlights:first-project:all",
       "sideProjectSkills:first-project:0",
     ]) {
       expect(container.querySelector(`[data-editor-field="${field}"]`))
         .not.toBeNull();
     }
+
+    expect(
+      screen.getByLabelText("First Project Repository URL"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("First Project 이미지 추가"))
+      .toBeInTheDocument();
+    const shell = container.querySelector<HTMLElement>(
+      '.project-shell[data-editor="true"]',
+    );
+    const deleteButton = screen.getByRole("button", {
+      name: "First Project 프로젝트 삭제",
+    });
+    expect(shell).not.toBeNull();
+    expect(deleteButton.parentElement).toBe(shell);
+
+    const confirmMock = vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(deleteButton);
+    expect(onDeleteItem).toHaveBeenCalledWith("project", "first-project");
+    confirmMock.mockRestore();
   });
 
   it("프로젝트 이미지를 갤러리와 좌우 이동 가능한 modal로 표시한다", () => {
@@ -225,6 +259,32 @@ describe("SideProjectsSection", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("저장된 prefix가 있는 상세 작업만 bullet 상태로 렌더링한다", () => {
+    const project: SideProject = {
+      ...sideProjects[0]!,
+      highlights: ["일반 문장", "- bullet 항목", "• legacy bullet"],
+    };
+    const { container } = render(
+      <SideProjectsSection sideProjects={[project]} />,
+    );
+    const items = [
+      ...container.querySelectorAll<HTMLLIElement>(
+        ".project-highlights > li",
+      ),
+    ];
+
+    expect(items.map((item) => item.textContent)).toEqual([
+      "일반 문장",
+      "bullet 항목",
+      "legacy bullet",
+    ]);
+    expect(items.map((item) => item.dataset.bullet === "true")).toEqual([
+      false,
+      true,
+      true,
+    ]);
+  });
+
   it("제공된 repository/link만 안전한 HTTPS external link로 렌더링한다", () => {
     const { container } = render(
       <SideProjectsSection sideProjects={sideProjects} />,
@@ -233,18 +293,21 @@ describe("SideProjectsSection", () => {
     if (!firstCard || !secondCard || !thirdCard) {
       throw new Error("project card 세 개가 필요합니다");
     }
+    const firstShell = firstCard.closest<HTMLElement>(".project-shell");
+    const secondShell = secondCard.closest<HTMLElement>(".project-shell");
+    const thirdShell = thirdCard.closest<HTMLElement>(".project-shell");
+    if (!firstShell || !secondShell || !thirdShell) {
+      throw new Error("project shell 세 개가 필요합니다");
+    }
 
-    const firstRepository = within(firstCard).getByRole("link", {
+    const firstRepository = within(firstShell).getByRole("link", {
       name: "First Project Repository (새 창)",
-      hidden: true,
     });
-    const firstLink = within(firstCard).getByRole("link", {
+    const firstLink = within(firstShell).getByRole("link", {
       name: "First Project Link (새 창)",
-      hidden: true,
     });
-    const thirdLink = within(thirdCard).getByRole("link", {
+    const thirdLink = within(thirdShell).getByRole("link", {
       name: "Third Project Link (새 창)",
-      hidden: true,
     });
 
     for (const link of [firstRepository, firstLink, thirdLink]) {
@@ -254,12 +317,12 @@ describe("SideProjectsSection", () => {
         expect.arrayContaining(["noopener", "noreferrer"]),
       );
     }
-    expect(within(secondCard).queryByRole("link", { hidden: true })).toBeNull();
+    expect(within(secondShell).queryByRole("link")).toBeNull();
     expect(screen.queryByText(
       "Repository와 Demo는 승인된 URL이 제공될 때만 표시합니다.",
     )).toBeNull();
-    expect(within(firstCard).queryByText("Demo", { exact: true })).toBeNull();
-    expect(within(thirdCard).queryByText("Repository")).not.toBeInTheDocument();
+    expect(within(firstShell).queryByText("Demo", { exact: true })).toBeNull();
+    expect(within(thirdShell).queryByText("Repository")).not.toBeInTheDocument();
   });
 
   it("빈 배열은 exact status empty state로 렌더링한다", () => {

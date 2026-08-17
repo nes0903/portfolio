@@ -7,9 +7,10 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CareerSection } from "@/components/portfolio/CareerSection";
+import type { PortfolioEditorBridge } from "@/components/portfolio/editor-types";
 import type { CareerWithWorks } from "@/lib/content/types";
 
 afterEach(() => {
@@ -106,6 +107,14 @@ function actionItems(description: string): string[] {
     .filter(Boolean);
 }
 
+function displayEvidenceLine(line: string): string {
+  return line.trim().replace(/^[-•]\s+/, "");
+}
+
+function isBulletLine(line: string): boolean {
+  return /^[-•]\s+/.test(line.trim());
+}
+
 describe("CareerSection", () => {
   it("join된 career/work를 각 회사 아래 loader order로 정확히 한 번 렌더링한다", () => {
     const { container } = render(<CareerSection careers={careers} />);
@@ -196,13 +205,28 @@ describe("CareerSection", () => {
             .getAllByRole("listitem")
             .map((item) => item.textContent),
         ).toEqual(actionItems(work.description));
+        expect(
+          within(action)
+            .getAllByRole("listitem")
+            .map((item) => item.dataset.bullet === "true"),
+        ).toEqual(
+          work.description
+            .split(/\r?\n/)
+            .filter((line) => line.trim().length > 0)
+            .map(isBulletLine),
+        );
 
         if (work.achievements) {
           expect(
             within(outcome)
               .getAllByRole("listitem")
               .map((item) => item.textContent),
-          ).toEqual(work.achievements);
+          ).toEqual(work.achievements.map(displayEvidenceLine));
+          expect(
+            within(outcome)
+              .getAllByRole("listitem")
+              .map((item) => item.dataset.bullet === "true"),
+          ).toEqual(work.achievements.map(isBulletLine));
         } else {
           expect(
             within(outcome).getByText("승인된 결과 정보가 없습니다."),
@@ -222,6 +246,59 @@ describe("CareerSection", () => {
         }
       }
     }
+  });
+
+  it("관리자 경력 제목은 단일 클릭으로 펼치고 더블클릭으로만 편집한다", () => {
+    const editor: PortfolioEditorBridge = {
+      onChangeIntroductionTextBlock: vi.fn(),
+      onChangeRecentTextColors: vi.fn(),
+      onSelectIntroductionTextBlock: vi.fn(),
+      onSelectSection: vi.fn(),
+      onTextCommit: vi.fn(),
+      selectedIntroductionTextBlockId: null,
+      selectedSection: "career",
+    };
+    const { container } = render(
+      <CareerSection careers={careers} editor={editor} />,
+    );
+    const details = container.querySelector<HTMLDetailsElement>(
+      "details:has([data-editor-disclosure-title])",
+    );
+    const summary = details?.querySelector<HTMLElement>(":scope > summary");
+    const title = details?.querySelector<HTMLElement>(
+      "[data-editor-disclosure-title]",
+    );
+
+    if (!details || !summary || !title) {
+      throw new Error("편집 가능한 경력 제목이 필요합니다");
+    }
+
+    expect(summary).not.toHaveAttribute("contenteditable");
+    expect(title).not.toHaveAttribute("contenteditable");
+    expect(details.open).toBe(true);
+
+    fireEvent.click(title);
+    expect(details.open).toBe(false);
+    expect(title).not.toHaveAttribute("contenteditable");
+
+    fireEvent.doubleClick(title);
+    const editingTitle = details.querySelector<HTMLElement>(
+      "[data-editor-disclosure-title]",
+    );
+    expect(editingTitle).toHaveAttribute("contenteditable", "true");
+    expect(editingTitle).toHaveAttribute("data-editor-editing", "true");
+
+    if (!editingTitle) throw new Error("편집 중인 경력 제목이 필요합니다");
+    fireEvent.keyDown(editingTitle, { key: "Escape" });
+    const displayTitle = details.querySelector<HTMLElement>(
+      "[data-editor-disclosure-title]",
+    );
+    expect(displayTitle).not.toHaveAttribute("contenteditable");
+    expect(screen.getAllByText("콘텐츠 계약 구축")).toHaveLength(1);
+    expect(screen.getByLabelText("First Company 시작 월")).toBeInTheDocument();
+    expect(screen.getByLabelText("콘텐츠 계약 구축 이미지 추가"))
+      .toBeInTheDocument();
+    expect(screen.getByLabelText("경력 섹션 글자색")).toBeInTheDocument();
   });
 
   it("사진 클릭으로 중앙 뷰어를 열고 순환한 뒤 바깥 클릭으로 닫는다", () => {

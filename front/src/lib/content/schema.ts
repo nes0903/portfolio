@@ -142,6 +142,7 @@ export const DEFAULT_PORTFOLIO_VISUALS = {
   cardRadius: 22,
   mutedTextColor: "#a8a6a0",
   pageBackgroundColor: "#000000",
+  recentTextColors: [] as string[],
   sections: {
     introduce: DEFAULT_INTRODUCTION_VISUAL,
     skills: DEFAULT_SECTION_VISUAL,
@@ -155,6 +156,20 @@ export const DEFAULT_PORTFOLIO_VISUALS = {
 const hexColorSchema = z
   .string()
   .regex(/^#[0-9a-f]{6}$/i, "Expected a six-digit hexadecimal color");
+
+const recentTextColorsSchema = z
+  .array(hexColorSchema.transform((color) => color.toUpperCase()))
+  .max(6)
+  .superRefine((colors, context) => {
+    const uniqueColors = new Set(colors);
+
+    if (uniqueColors.size !== colors.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Expected unique recent text colors",
+      });
+    }
+  });
 
 const portfolioAssetPathSchema = z.string().regex(
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/[0-9a-f-]+\.(?:avif|jpe?g|png|webp)$/i,
@@ -311,6 +326,9 @@ export const portfolioVisualsSchema = z
     ),
     pageBackgroundColor: hexColorSchema.default(
       DEFAULT_PORTFOLIO_VISUALS.pageBackgroundColor,
+    ),
+    recentTextColors: recentTextColorsSchema.default(
+      DEFAULT_PORTFOLIO_VISUALS.recentTextColors,
     ),
     sections: z
       .object({

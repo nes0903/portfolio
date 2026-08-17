@@ -14,11 +14,11 @@ import { NavigationTracker } from "@/components/layout/NavigationTracker";
 import { PortfolioNavigation } from "@/components/layout/PortfolioNavigation";
 import {
   PORTFOLIO_SECTIONS,
-  type PortfolioSectionId,
+  type PortfolioScrollSectionId,
 } from "@/components/layout/navigation";
 
 interface MockEntry {
-  readonly id: PortfolioSectionId;
+  readonly id: PortfolioScrollSectionId;
   readonly isIntersecting: boolean;
 }
 
@@ -80,7 +80,9 @@ function TrackerTestPage({
   onActiveSectionChange,
   useContainerScroll = false,
 }: {
-  readonly onActiveSectionChange?: (sectionId: PortfolioSectionId) => void;
+  readonly onActiveSectionChange?: (
+    sectionId: PortfolioScrollSectionId,
+  ) => void;
   readonly useContainerScroll?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -113,7 +115,7 @@ function TrackerTestPage({
 
 function renderTracker(
   useContainerScroll = false,
-  onActiveSectionChange?: (sectionId: PortfolioSectionId) => void,
+  onActiveSectionChange?: (sectionId: PortfolioScrollSectionId) => void,
 ): TrackerFixture {
   const queuedFrames: FrameRequestCallback[] = [];
   const cancelAnimationFrameMock = vi.fn();
@@ -153,7 +155,7 @@ function getObserver(): MockIntersectionObserver {
   return observer;
 }
 
-function expectCurrentSection(sectionId: PortfolioSectionId): void {
+function expectCurrentSection(sectionId: PortfolioScrollSectionId): void {
   for (const section of PORTFOLIO_SECTIONS) {
     const link = screen.getByRole("link", { name: section.label });
 
@@ -166,7 +168,7 @@ function expectCurrentSection(sectionId: PortfolioSectionId): void {
 }
 
 function setSectionRect(
-  sectionId: PortfolioSectionId,
+  sectionId: PortfolioScrollSectionId,
   top: number,
   height: number,
 ): void {
@@ -214,13 +216,13 @@ afterEach(() => {
 });
 
 describe("NavigationTracker continuous scroll navigation", () => {
-  it("네 section을 중앙 10% 영역에서 관찰하고 소개를 초기 활성화한다", () => {
+  it("세 section을 중앙 10% 영역에서 관찰하고 소개를 초기 활성화한다", () => {
     renderTracker();
     const observer = getObserver();
 
     expect(observer.root).toBeNull();
     expect(observer.rootMargin).toBe("-45% 0px -45% 0px");
-    expect(observer.observe).toHaveBeenCalledTimes(4);
+    expect(observer.observe).toHaveBeenCalledTimes(3);
     expectCurrentSection("introduce");
   });
 
@@ -314,14 +316,12 @@ describe("NavigationTracker continuous scroll navigation", () => {
     });
     runNextFrame(queuedFrames);
 
+    const callsBeforeLegacyHash = scrollIntoViewMock.mock.calls.length;
     window.history.replaceState(null, "", "#contact");
     act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
 
-    expectCurrentSection("contact");
-    expect(scrollIntoViewMock).toHaveBeenLastCalledWith({
-      behavior: "smooth",
-      block: "start",
-    });
+    expectCurrentSection("side-projects");
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(callsBeforeLegacyHash);
   });
 
   it("scroll 중 모바일 메뉴를 표시하고 1.2초 뒤 숨긴다", () => {
@@ -363,14 +363,14 @@ describe("NavigationTracker continuous scroll navigation", () => {
     const container = screen.getByTestId("portfolio");
 
     expect(observer.root).toBe(container);
-    fireEvent.click(screen.getByRole("link", { name: "연락처" }));
+    fireEvent.click(screen.getByRole("link", { name: "프로젝트" }));
 
     expect(window.location.hash).toBe("");
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
       behavior: "smooth",
       block: "start",
     });
-    expectCurrentSection("contact");
+    expectCurrentSection("side-projects");
   });
 
   it("unmount 시 observer와 pending frame을 정리한다", () => {

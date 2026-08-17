@@ -1,3 +1,14 @@
+"use client";
+
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
+
 import { EmptyState } from "@/components/portfolio/EmptyState";
 import {
   FormattedText,
@@ -9,6 +20,11 @@ import {
 } from "@/components/portfolio/editor-types";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
 import { CareerWorkImages } from "@/components/portfolio/CareerWorkImages";
+import { InlineImageEditor } from "@/components/portfolio/InlineImageEditor";
+import {
+  parseNotionListLine,
+  parseNotionListText,
+} from "@/components/portfolio/notion-list";
 import type {
   CareerWithWorks,
   PortfolioSectionVisual,
@@ -21,11 +37,87 @@ interface CareerSectionProps {
   readonly visual?: PortfolioSectionVisual;
 }
 
-function getActionItems(description: string): string[] {
-  return description
-    .split(/\r?\n/)
-    .map((line) => line.trim().replace(/^[-•]\s*/, ""))
-    .filter(Boolean);
+interface CareerWorkSummaryTitleProps {
+  readonly editor?: PortfolioEditorBridge;
+  readonly field: string;
+  readonly text: string;
+}
+
+function CareerWorkSummaryTitle({
+  editor,
+  field,
+  text,
+}: CareerWorkSummaryTitleProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const titleRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const title = titleRef.current;
+    if (!title) return;
+
+    title.focus();
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(title);
+    range.collapse(false);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }, [isEditing]);
+
+  function handleClick(event: MouseEvent<HTMLSpanElement>): void {
+    if (!isEditing) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function handleBlur(event: FocusEvent<HTMLSpanElement>): void {
+    const nextTarget = event.relatedTarget;
+
+    if (
+      nextTarget instanceof Element &&
+      nextTarget.closest(".preview-rich-text-toolbar")
+    ) {
+      return;
+    }
+
+    setIsEditing(false);
+  }
+
+  function handleDoubleClick(event: MouseEvent<HTMLSpanElement>): void {
+    if (!editor) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setIsEditing(true);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLSpanElement>): void {
+    if (!isEditing || event.key !== "Escape") return;
+
+    event.preventDefault();
+    event.currentTarget.blur();
+  }
+
+  return (
+    <span
+      className="career-work-title"
+      data-editor-disclosure-title={editor ? field : undefined}
+      data-editor-editing={isEditing ? "true" : undefined}
+      onBlur={isEditing ? handleBlur : undefined}
+      onClick={editor ? handleClick : undefined}
+      onDoubleClick={editor ? handleDoubleClick : undefined}
+      onKeyDown={editor ? handleKeyDown : undefined}
+      key={isEditing ? "editing" : "display"}
+      ref={titleRef}
+      title={editor && !isEditing ? "더블클릭하여 제목 편집" : undefined}
+      {...(isEditing ? createEditableTextProps(editor, field) : {})}
+    >
+      <FormattedText text={text} />
+    </span>
+  );
 }
 
 /**
@@ -82,10 +174,61 @@ export function CareerSection({
                     </p>
                   ) : null}
                 </div>
-                <p className="period">
-                  {career.startDate} – {career.endDate ?? "현재"}
-                </p>
+                {editor ? (
+                  <span className="period inline-period-editor">
+                    <input
+                      aria-label={`${stripInlineFormatting(career.company)} 시작 월`}
+                      onChange={(event) =>
+                        editor.onChangeCareerDates?.(
+                          career.id,
+                          event.currentTarget.value,
+                          career.endDate,
+                        )
+                      }
+                      type="month"
+                      value={career.startDate}
+                    />
+                    <span>–</span>
+                    <input
+                      aria-label={`${stripInlineFormatting(career.company)} 종료 월`}
+                      onChange={(event) =>
+                        editor.onChangeCareerDates?.(
+                          career.id,
+                          career.startDate,
+                          event.currentTarget.value || null,
+                        )
+                      }
+                      type="month"
+                      value={career.endDate ?? ""}
+                    />
+                  </span>
+                ) : (
+                  <p className="period">
+                    {career.startDate} – {career.endDate ?? "현재"}
+                  </p>
+                )}
               </div>
+              {editor ? (
+                <div className="inline-structure-actions">
+                  <button
+                    onClick={() => editor.onAddItem?.("careerWork", career.id)}
+                    type="button"
+                  >
+                    + 작업
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      if (window.confirm(`${stripInlineFormatting(career.company)} 경력과 연결 작업을 삭제할까요?`)) {
+                        editor.onDeleteItem?.("career", career.id);
+                      }
+                    }}
+                    type="button"
+                  >
+                    경력 삭제
+                  </button>
+                </div>
+              ) : null}
 
               {career.works.length === 0 ? (
                 <EmptyState>표시할 경력 작업이 없습니다.</EmptyState>
@@ -93,13 +236,12 @@ export function CareerSection({
                 <div className="disclosures">
                   {career.works.map((work, index) => (
                     <details key={work.id} open={index === 0}>
-                      <summary
-                        {...createEditableTextProps(
-                          editor,
-                          `careerWorks:${work.id}:title`,
-                        )}
-                      >
-                        <FormattedText text={work.title} />
+                      <summary>
+                        <CareerWorkSummaryTitle
+                          editor={editor}
+                          field={`careerWorks:${work.id}:title`}
+                          text={work.title}
+                        />
                       </summary>
                       <div className="evidence">
                         <section className="career-evidence-tech">
@@ -136,13 +278,18 @@ export function CareerSection({
                             {...createEditableTextProps(
                               editor,
                               `careerWorks:${work.id}:description`,
-                              { richText: "career-action" },
+                              { richText: "notion-list" },
                             )}
                           >
-                            {getActionItems(work.description).map(
+                            {parseNotionListText(work.description).map(
                               (action, actionIndex) => (
-                                <li key={`${action}-${actionIndex}`}>
-                                  <FormattedText text={action} />
+                                <li
+                                  data-bullet={
+                                    action.isBullet ? "true" : undefined
+                                  }
+                                  key={`${action.text}-${actionIndex}`}
+                                >
+                                  <FormattedText text={action.text} />
                                 </li>
                               ),
                             )}
@@ -150,23 +297,38 @@ export function CareerSection({
                         </section>
                         <section>
                           <h4>Outcome</h4>
-                          {work.achievements && work.achievements.length > 0 ? (
+                          {editor ||
+                          (work.achievements &&
+                            work.achievements.length > 0) ? (
                             <ul
                               aria-label={`${stripInlineFormatting(work.title)} 성과`}
                               className="career-evidence-list"
+                              {...createEditableTextProps(
+                                editor,
+                                `careerWorkAchievements:${work.id}:all`,
+                                { richText: "notion-list" },
+                              )}
                             >
-                              {work.achievements.map(
-                                (achievement, achievementIndex) => (
-                                  <li
-                                    key={`${achievement}-${achievementIndex}`}
-                                    {...createEditableTextProps(
-                                      editor,
-                                      `careerWorkAchievements:${work.id}:${achievementIndex}`,
-                                    )}
-                                  >
-                                    <FormattedText text={achievement} />
-                                  </li>
-                                ),
+                              {(work.achievements &&
+                              work.achievements.length > 0
+                                ? work.achievements
+                                : [""]
+                              ).map(
+                                (achievement, achievementIndex) => {
+                                  const line =
+                                    parseNotionListLine(achievement);
+
+                                  return (
+                                    <li
+                                      data-bullet={
+                                        line.isBullet ? "true" : undefined
+                                      }
+                                      key={`${achievement}-${achievementIndex}`}
+                                    >
+                                      <FormattedText text={line.text} />
+                                    </li>
+                                  );
+                                },
                               )}
                             </ul>
                           ) : (
@@ -176,18 +338,51 @@ export function CareerSection({
                           )}
                         </section>
                       </div>
+                      {editor ? (
+                        <div className="inline-structure-actions">
+                          <button
+                            className="danger"
+                            onClick={() => {
+                              if (window.confirm(`${stripInlineFormatting(work.title)} 작업을 삭제할까요?`)) {
+                                editor.onDeleteItem?.("careerWork", work.id);
+                              }
+                            }}
+                            type="button"
+                          >
+                            작업 삭제
+                          </button>
+                        </div>
+                      ) : null}
                       {work.images && work.images.length > 0 ? (
                         <CareerWorkImages
+                          editor={editor}
                           images={work.images}
+                          ownerId={work.id}
                           title={stripInlineFormatting(work.title)}
                         />
                       ) : null}
+                      <InlineImageEditor
+                        editor={editor}
+                        images={work.images ?? []}
+                        kind="careerWork"
+                        ownerId={work.id}
+                        title={stripInlineFormatting(work.title)}
+                      />
                     </details>
                   ))}
                 </div>
               )}
             </article>
           ))}
+          {editor ? (
+            <button
+              className="inline-add-row"
+              onClick={() => editor.onAddItem?.("career")}
+              type="button"
+            >
+              + 경력 추가
+            </button>
+          ) : null}
         </div>
       )}
     </PortfolioSection>

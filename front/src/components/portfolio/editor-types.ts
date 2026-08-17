@@ -1,5 +1,9 @@
 import type { PortfolioSectionId } from "@/components/layout/navigation";
-import type { IntroductionTextBlock } from "@/lib/content/types";
+import type {
+  Contact,
+  IntroductionTextBlock,
+  PortfolioSectionVisual,
+} from "@/lib/content/types";
 
 export type IntroductionTextBlockLayoutPatch = Partial<
   Pick<
@@ -9,9 +13,58 @@ export type IntroductionTextBlockLayoutPatch = Partial<
 >;
 
 export interface PortfolioEditorBridge {
+  readonly onAddItem?: (
+    kind: "career" | "careerWork" | "contact" | "project" | "skill",
+    parentId?: string,
+  ) => void;
   readonly onChangeIntroductionTextBlock: (
     blockId: string,
     patch: IntroductionTextBlockLayoutPatch,
+  ) => void;
+  readonly onChangeRecentTextColors: (colors: readonly string[]) => void;
+  readonly onChangeCareerDates?: (
+    careerId: string,
+    startDate: string,
+    endDate: string | null,
+  ) => void;
+  readonly onChangeContactStructure?: (
+    contactId: string,
+    channel: Contact["channel"],
+    url: string,
+  ) => void;
+  readonly onChangeProjectLink?: (
+    projectId: string,
+    key: "demo" | "repository",
+    value: string,
+  ) => void;
+  readonly onChangeSectionVisual?: (
+    sectionId: PortfolioSectionId,
+    patch: Partial<PortfolioSectionVisual>,
+  ) => void;
+  readonly onChangeGalleryImageAlt?: (
+    kind: "careerWork" | "project",
+    ownerId: string,
+    path: string,
+    alt: string,
+  ) => void;
+  readonly onRemoveGalleryImage?: (
+    kind: "careerWork" | "project",
+    ownerId: string,
+    path: string,
+  ) => void;
+  readonly onRemoveSectionBackground?: (sectionId: PortfolioSectionId) => void;
+  readonly onDeleteItem?: (
+    kind: "career" | "careerWork" | "contact" | "project" | "skill",
+    id: string,
+  ) => void;
+  readonly onUploadGalleryImages?: (
+    kind: "careerWork" | "project",
+    ownerId: string,
+    files: readonly File[],
+  ) => void;
+  readonly onUploadSectionBackground?: (
+    sectionId: PortfolioSectionId,
+    file: File,
   ) => void;
   readonly onSelectIntroductionTextBlock: (blockId: string) => void;
   readonly onSelectSection: (sectionId: PortfolioSectionId) => void;
@@ -21,7 +74,7 @@ export interface PortfolioEditorBridge {
 }
 
 interface EditableTextOptions {
-  readonly richText?: false | "career-action" | "inline";
+  readonly richText?: false | "inline" | "notion-list";
 }
 
 export function createEditableTextProps(

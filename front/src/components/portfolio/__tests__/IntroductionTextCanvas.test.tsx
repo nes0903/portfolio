@@ -61,6 +61,7 @@ describe("IntroductionTextCanvas", () => {
     const onChangeIntroductionTextBlock = vi.fn();
     const editor = {
       onChangeIntroductionTextBlock,
+      onChangeRecentTextColors: vi.fn(),
       onSelectIntroductionTextBlock: vi.fn(),
       onSelectSection: vi.fn(),
       onTextCommit: vi.fn(),
@@ -134,6 +135,7 @@ describe("IntroductionTextCanvas", () => {
     const onChangeIntroductionTextBlock = vi.fn();
     const editor = {
       onChangeIntroductionTextBlock,
+      onChangeRecentTextColors: vi.fn(),
       onSelectIntroductionTextBlock: vi.fn(),
       onSelectSection: vi.fn(),
       onTextCommit: vi.fn(),
@@ -237,6 +239,7 @@ describe("IntroductionTextCanvas", () => {
     const onChangeIntroductionTextBlock = vi.fn();
     const editor = {
       onChangeIntroductionTextBlock,
+      onChangeRecentTextColors: vi.fn(),
       onSelectIntroductionTextBlock: vi.fn(),
       onSelectSection: vi.fn(),
       onTextCommit: vi.fn(),

@@ -120,6 +120,57 @@ export function PortfolioSection({
           {title}
         </Heading>
       )}
+      {editor ? (
+        <div className="inline-section-design-strip" aria-label={`${title} 섹션 디자인`}>
+          <label>
+            글자
+            <input
+              aria-label={`${title} 섹션 글자색`}
+              onInput={(event) =>
+                editor.onChangeSectionVisual?.(id, {
+                  textColor: event.currentTarget.value,
+                })
+              }
+              type="color"
+              value={visual.textColor}
+            />
+          </label>
+          <label>
+            강조
+            <input
+              aria-label={`${title} 섹션 강조색`}
+              onInput={(event) =>
+                editor.onChangeSectionVisual?.(id, {
+                  accentColor: event.currentTarget.value,
+                })
+              }
+              type="color"
+              value={visual.accentColor}
+            />
+          </label>
+          <label className="inline-background-upload">
+            배경
+            <input
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              aria-label={`${title} 섹션 배경 이미지`}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file) editor.onUploadSectionBackground?.(id, file);
+              }}
+              type="file"
+            />
+          </label>
+          {image ? (
+            <button
+              onClick={() => editor.onRemoveSectionBackground?.(id)}
+              type="button"
+            >
+              배경 삭제
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {children}
     </section>
   );

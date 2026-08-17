@@ -6,9 +6,10 @@ interface FormattedTextProps {
 
 interface InlineFormatMatch {
   readonly close: string;
+  readonly color?: string;
   readonly index: number;
   readonly open: string;
-  readonly type: "bold" | "highlight" | "italic" | "underline";
+  readonly type: "bold" | "color" | "highlight" | "italic" | "underline";
 }
 
 const INLINE_FORMATS: readonly Omit<InlineFormatMatch, "index">[] = [
@@ -18,7 +19,13 @@ const INLINE_FORMATS: readonly Omit<InlineFormatMatch, "index">[] = [
   { close: "[/mark]", open: "[mark]", type: "highlight" },
 ];
 
-const INLINE_FORMAT_TAG_PATTERN = /\[(?:\/)?(?:b|i|u|mark)\]/g;
+const INLINE_COLOR_OPEN_PATTERN = /\[color=(#[0-9a-fA-F]{6})\]/;
+const INLINE_FORMAT_TAG_PATTERN =
+  /\[(?:\/)?(?:b|i|u|mark)\]|\[color=#[0-9a-fA-F]{6}\]|\[\/color\]/g;
+
+export function normalizeInlineTextColor(value: string): string | null {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value.toUpperCase() : null;
+}
 
 function findInlineFormat(text: string): InlineFormatMatch | undefined {
   let closest: InlineFormatMatch | undefined;
@@ -28,6 +35,27 @@ function findInlineFormat(text: string): InlineFormatMatch | undefined {
 
     if (index >= 0 && (!closest || index < closest.index)) {
       closest = { ...format, index };
+    }
+  }
+
+  const colorMatch = INLINE_COLOR_OPEN_PATTERN.exec(text);
+
+  if (
+    colorMatch?.index !== undefined &&
+    colorMatch[0] &&
+    colorMatch[1] &&
+    (!closest || colorMatch.index < closest.index)
+  ) {
+    const color = normalizeInlineTextColor(colorMatch[1]);
+
+    if (color) {
+      closest = {
+        close: "[/color]",
+        color,
+        index: colorMatch.index,
+        open: colorMatch[0],
+        type: "color",
+      };
     }
   }
 
@@ -60,6 +88,14 @@ function renderInlineFormatting(text: string, keyPrefix: string): ReactNode[] {
       <em key={`${keyPrefix}-italic`}>{content}</em>
     ) : format.type === "underline" ? (
       <u key={`${keyPrefix}-underline`}>{content}</u>
+    ) : format.type === "color" && format.color ? (
+      <span
+        data-text-color={format.color}
+        key={`${keyPrefix}-color-${format.color}`}
+        style={{ color: format.color }}
+      >
+        {content}
+      </span>
     ) : (
       <mark key={`${keyPrefix}-highlight`}>{content}</mark>
     );

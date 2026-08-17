@@ -6,7 +6,7 @@ interface PortfolioNavigationProps {
 }
 
 /**
- * 연속 scroll section을 이동하는 세로형 4개 anchor 목록.
+ * 연속 scroll section을 이동하는 세로형 3개 anchor 목록.
  */
 export function PortfolioNavigation({
   ariaLabel,

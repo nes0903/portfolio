@@ -111,6 +111,15 @@ export function SkillsContent({
               </article>
             );
           })}
+          {editor ? (
+            <button
+              className="inline-add-row"
+              onClick={() => editor.onAddItem?.("skill")}
+              type="button"
+            >
+              + 기술 추가
+            </button>
+          ) : null}
         </div>
       )}
     </div>

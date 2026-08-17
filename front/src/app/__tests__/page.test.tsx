@@ -17,7 +17,6 @@ const navigationHrefs = [
   "#introduce",
   "#career",
   "#side-projects",
-  "#contact",
 ] as const;
 
 const populatedContent = {
@@ -105,7 +104,7 @@ afterEach(() => {
 });
 
 describe("portfolio home page shell", () => {
-  it("본문 skip link와 단일 세로형 4개 anchor navigation을 제공한다", async () => {
+  it("본문 skip link와 단일 세로형 3개 anchor navigation을 제공한다", async () => {
     await renderHomePage();
 
     expect(screen.getByRole("link", { name: "본문으로 이동" })).toHaveAttribute(
@@ -124,7 +123,7 @@ describe("portfolio home page shell", () => {
     expect(screen.getAllByRole("navigation")).toHaveLength(1);
   });
 
-  it("단일 페이지 landmark와 이름이 연결된 4개 focusable section을 렌더링한다", async () => {
+  it("세 개 focusable section과 고정 연락처 aside를 렌더링한다", async () => {
     const { container } = await renderHomePage();
 
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
@@ -139,13 +138,12 @@ describe("portfolio home page shell", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
     expect(container.querySelectorAll("[data-starfield]")).toHaveLength(1);
-    expect(container.querySelectorAll("main > section")).toHaveLength(4);
+    expect(container.querySelectorAll("main > section")).toHaveLength(3);
 
     for (const id of [
       "introduce",
       "career",
       "side-projects",
-      "contact",
     ]) {
       const section = container.querySelector<HTMLElement>(`section#${id}`);
       expect(section).not.toBeNull();
@@ -153,6 +151,10 @@ describe("portfolio home page shell", () => {
       expect(section).toHaveAttribute("aria-labelledby", `${id}-title`);
       expect(container.querySelector(`#${id}-title`)).toBeInTheDocument();
     }
+    expect(container.querySelector("section#contact")).toBeNull();
+    expect(
+      screen.getByRole("complementary", { name: "연락처" }),
+    ).toHaveAttribute("id", "contact");
   });
 
   it("소개 h1 하나와 이후 section h2를 사용하고 heading level을 건너뛰지 않는다", async () => {
@@ -175,7 +177,6 @@ describe("portfolio home page shell", () => {
     for (const [id, name] of [
       ["career", "경력"],
       ["side-projects", "프로젝트"],
-      ["contact", "연락처"],
     ] as const) {
       expect(screen.getByRole("heading", { level: 2, name })).toHaveAttribute(
         "id",
@@ -209,7 +210,6 @@ describe("portfolio home page shell", () => {
     for (const [sectionId, message] of [
       ["career", "표시할 경력이 없습니다."],
       ["side-projects", "표시할 프로젝트가 없습니다."],
-      ["contact", "표시할 연락처가 없습니다."],
     ] as const) {
       const section = container.querySelector<HTMLElement>(`#${sectionId}`);
       if (!section) throw new Error(`${sectionId} section이 필요합니다`);
@@ -217,6 +217,9 @@ describe("portfolio home page shell", () => {
         within(section).getByText(message, { selector: '[role="status"]' }),
       ).toHaveTextContent(message);
     }
+    expect(
+      screen.getByRole("complementary", { name: "연락처" }),
+    ).toBeInTheDocument();
   });
 
   it("name placeholder와 profile panel 없이 주황색 side brand를 렌더링한다", async () => {

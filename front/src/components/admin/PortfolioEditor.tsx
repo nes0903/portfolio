@@ -5,16 +5,13 @@ import Link from "next/link";
 import {
   useActionState,
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
 import { logoutAction, savePortfolioAction } from "@/app/admin/actions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import {
-  PORTFOLIO_SECTIONS,
   type PortfolioSectionId,
 } from "@/components/layout/navigation";
 import { PortfolioExperience } from "@/components/portfolio/PortfolioExperience";
@@ -583,9 +580,6 @@ function IntroductionTextBlockControls({
 
 export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   const [content, setContent] = useState(initialContent);
-  const [isInspectorOpen, setInspectorOpen] = useState(true);
-  const [isMobileViewport, setMobileViewport] = useState(false);
-  const [isViewportReady, setViewportReady] = useState(false);
   const [selectedSection, setSelectedSection] =
     useState<PortfolioSectionId>("introduce");
   const [selectedIntroductionTextBlockId, setSelectedIntroductionTextBlockId] =
@@ -603,7 +597,6 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
     savePortfolioAction,
     initialAdminFormState,
   );
-  const inspectorToggleRef = useRef<HTMLButtonElement | null>(null);
   const normalizedContent = useMemo(
     () => normalizePortfolioContentForSave(content),
     [content],
@@ -615,66 +608,32 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
 
   const selectSection = useCallback((sectionId: PortfolioSectionId): void => {
     setSelectedSection(sectionId);
-    window.requestAnimationFrame(() => {
-      document
-        .querySelector(`[data-admin-section="${sectionId}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
   }, []);
 
-  useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 720px)");
+  const changeRecentTextColors = useCallback(
+    (recentTextColors: readonly string[]): void => {
+      setContent((current) => {
+        if (
+          current.visuals.recentTextColors.length ===
+            recentTextColors.length &&
+          current.visuals.recentTextColors.every(
+            (color, index) => color === recentTextColors[index],
+          )
+        ) {
+          return current;
+        }
 
-    function syncViewportMode(): void {
-      setMobileViewport(mobileQuery.matches);
-      setInspectorOpen(!mobileQuery.matches);
-      setViewportReady(true);
-    }
-
-    syncViewportMode();
-    mobileQuery.addEventListener("change", syncViewportMode);
-
-    return () => mobileQuery.removeEventListener("change", syncViewportMode);
-  }, []);
-
-  useEffect(() => {
-    if (!isMobileViewport || !isInspectorOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isInspectorOpen, isMobileViewport]);
-
-  useEffect(() => {
-    if (!isInspectorOpen) return;
-
-    function closeInspectorWithEscape(event: KeyboardEvent): void {
-      if (event.key !== "Escape") return;
-
-      setInspectorOpen(false);
-      window.requestAnimationFrame(() => inspectorToggleRef.current?.focus());
-    }
-
-    window.addEventListener("keydown", closeInspectorWithEscape);
-    return () => window.removeEventListener("keydown", closeInspectorWithEscape);
-  }, [isInspectorOpen]);
-
-  function closeInspector(): void {
-    setInspectorOpen(false);
-    window.requestAnimationFrame(() => inspectorToggleRef.current?.focus());
-  }
-
-  function navigateToSection(sectionId: PortfolioSectionId): void {
-    selectSection(sectionId);
-    document
-      .querySelector<HTMLAnchorElement>(
-        `[data-editor-preview] a[data-nav="${sectionId}"]`,
-      )
-      ?.click();
-  }
+        return {
+          ...current,
+          visuals: {
+            ...current.visuals,
+            recentTextColors: [...recentTextColors],
+          },
+        };
+      });
+    },
+    [],
+  );
 
   function updateSectionVisual(
     sectionId: PortfolioSectionId,
@@ -695,6 +654,169 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         },
       },
     }));
+  }
+
+  function changeCareerDates(
+    careerId: string,
+    startDate: string,
+    endDate: string | null,
+  ): void {
+    setContent((current) => ({
+      ...current,
+      careers: current.careers.map((career) =>
+        career.id === careerId ? { ...career, startDate, endDate } : career,
+      ),
+    }));
+  }
+
+  function changeContactStructure(
+    contactId: string,
+    channel: PortfolioDocumentContent["contacts"][number]["channel"],
+    url: string,
+  ): void {
+    setContent((current) => ({
+      ...current,
+      contacts: current.contacts.map((contact) => {
+        if (contact.id !== contactId) return contact;
+        if (contact.channel === channel) return { ...contact, url };
+
+        if (channel === "email") {
+          const value = "hello@example.com";
+          return {
+            ...contact,
+            channel,
+            label: "Email",
+            url: `mailto:${value}`,
+            value,
+          };
+        }
+
+        if (channel === "phone") {
+          const value = "010-0000-0000";
+          return {
+            ...contact,
+            channel,
+            label: "Phone",
+            url: createPhoneTelUrl(value) ?? "tel:01000000000",
+            value,
+          };
+        }
+
+        return {
+          ...contact,
+          channel,
+          url: url.startsWith("https://") ? url : "https://example.com",
+        };
+      }),
+    }));
+  }
+
+  function changeProjectLink(
+    projectId: string,
+    key: "demo" | "repository",
+    value: string,
+  ): void {
+    setContent((current) => ({
+      ...current,
+      sideProjects: current.sideProjects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              links: { ...project.links, [key]: value || undefined },
+            }
+          : project,
+      ),
+    }));
+  }
+
+  function uploadGalleryImages(
+    kind: "careerWork" | "project",
+    ownerId: string,
+    files: readonly File[],
+  ): void {
+    if (kind === "careerWork") {
+      void uploadCareerWorkImages(ownerId, files);
+    } else {
+      void uploadProjectImages(ownerId, files);
+    }
+  }
+
+  function changeGalleryImageAlt(
+    kind: "careerWork" | "project",
+    ownerId: string,
+    path: string,
+    alt: string,
+  ): void {
+    if (kind === "careerWork") {
+      updateCareerWorkImageAlt(ownerId, path, alt);
+    } else {
+      updateProjectImageAlt(ownerId, path, alt);
+    }
+  }
+
+  function removeGalleryImage(
+    kind: "careerWork" | "project",
+    ownerId: string,
+    path: string,
+  ): void {
+    if (kind === "careerWork") {
+      removeCareerWorkImage(ownerId, path);
+    } else {
+      removeProjectImage(ownerId, path);
+    }
+  }
+
+  function addInlineItem(
+    kind: "career" | "careerWork" | "contact" | "project" | "skill",
+    parentId?: string,
+  ): void {
+    setContent((current) => {
+      if (kind === "skill") {
+        return {
+          ...current,
+          skills: [...current.skills, { category: "새 분류", id: createContentId("skill"), name: "새 기술", order: current.skills.length }],
+        };
+      }
+      if (kind === "career") {
+        return {
+          ...current,
+          careers: [...current.careers, { company: "새 회사", endDate: null, id: createContentId("career"), order: current.careers.length, role: "직무", startDate: new Date().toISOString().slice(0, 7) }],
+        };
+      }
+      if (kind === "careerWork" && parentId) {
+        return {
+          ...current,
+          careerWorks: [...current.careerWorks, { careerId: parentId, description: "작업 설명", id: createContentId("work"), order: current.careerWorks.filter((work) => work.careerId === parentId).length, title: "새 작업" }],
+        };
+      }
+      if (kind === "project") {
+        return {
+          ...current,
+          sideProjects: [...current.sideProjects, { description: "프로젝트 설명", highlights: [], id: createContentId("project"), images: [], links: {}, name: "새 프로젝트", order: current.sideProjects.length, period: String(new Date().getFullYear()), skills: [] }],
+        };
+      }
+      if (kind === "contact") {
+        return {
+          ...current,
+          contacts: [...current.contacts, { channel: "website", id: createContentId("contact"), label: "Website", order: current.contacts.length, url: "https://example.com", value: "example.com" }],
+        };
+      }
+      return current;
+    });
+  }
+
+  function deleteInlineItem(
+    kind: "career" | "careerWork" | "contact" | "project" | "skill",
+    id: string,
+  ): void {
+    setContent((current) => {
+      if (kind === "skill") return { ...current, skills: current.skills.filter((item) => item.id !== id) };
+      if (kind === "career") return { ...current, careers: current.careers.filter((item) => item.id !== id), careerWorks: current.careerWorks.filter((item) => item.careerId !== id) };
+      if (kind === "careerWork") return { ...current, careerWorks: current.careerWorks.filter((item) => item.id !== id) };
+      if (kind === "project") return { ...current, sideProjects: current.sideProjects.filter((item) => item.id !== id) };
+      if (kind === "contact") return { ...current, contacts: current.contacts.filter((item) => item.id !== id) };
+      return current;
+    });
   }
 
   function selectIntroductionTextBlock(blockId: string): void {
@@ -1139,9 +1261,16 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
   }
 
   function commitInlineText(field: string, value: string): void {
-    const isCareerAction =
-      field.startsWith("careerWorks:") && field.endsWith(":description");
-    const normalizedValue = isCareerAction
+    const isNotionList =
+      (field.startsWith("careerWorks:") &&
+        field.endsWith(":description")) ||
+      (field.startsWith("careerWorkAchievements:") &&
+        field.endsWith(":all")) ||
+      (field.startsWith("sideProjectHighlights:") && field.endsWith(":all"));
+    const allowsEmptyList =
+      field.startsWith("careerWorkAchievements:") ||
+      field.startsWith("sideProjectHighlights:");
+    const normalizedValue = isNotionList
       ? value
           .split(/\r?\n/)
           .map((line) => line.trim())
@@ -1152,7 +1281,7 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         ? value.trim()
         : value.replace(/\s+/g, " ").trim();
 
-    if (!normalizedValue) {
+    if (!normalizedValue && !allowsEmptyList) {
       setAssetMessage("필수 문구는 비워둘 수 없습니다.");
       return;
     }
@@ -1222,6 +1351,15 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       }
 
       if (collection === "careerWorks") {
+        const existingWork = current.careerWorks.find(
+          (item) => item.id === id,
+        );
+
+        if (!existingWork) return current;
+        if (key === "title" && existingWork.title === normalizedValue) {
+          return current;
+        }
+
         return {
           ...current,
           careerWorks: current.careerWorks.map((item) => {
@@ -1255,6 +1393,17 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       }
 
       if (collection === "careerWorkAchievements") {
+        if (key === "all") {
+          return {
+            ...current,
+            careerWorks: current.careerWorks.map((item) =>
+              item.id === id
+                ? { ...item, achievements: splitLines(normalizedValue) }
+                : item,
+            ),
+          };
+        }
+
         const itemIndex = Number(key);
         if (!Number.isInteger(itemIndex)) return current;
 
@@ -1289,6 +1438,17 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
       }
 
       if (collection === "sideProjectHighlights") {
+        if (key === "all") {
+          return {
+            ...current,
+            sideProjects: current.sideProjects.map((item) =>
+              item.id === id
+                ? { ...item, highlights: splitLines(normalizedValue) ?? [] }
+                : item,
+            ),
+          };
+        }
+
         const itemIndex = Number(key);
         if (!Number.isInteger(itemIndex)) return current;
 
@@ -1365,17 +1525,60 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         value={JSON.stringify(normalizedContent)}
       />
 
-      <button
-        aria-controls="visual-editor-inspector"
-        aria-expanded={isInspectorOpen}
-        className="visual-editor-toggle"
-        data-visible={!isInspectorOpen ? "true" : "false"}
-        onClick={() => setInspectorOpen(true)}
-        ref={inspectorToggleRef}
-        type="button"
-      >
-        편집
-      </button>
+      <header className="inline-admin-bar">
+        <div className="inline-admin-bar-title">
+          <span className="admin-kicker">PORTFOLIO CMS</span>
+          <strong>{SECTION_LABELS[selectedSection]}</strong>
+        </div>
+        <div className="inline-admin-global-colors" aria-label="전체 글자색 직접 편집">
+          <label>
+            기본
+            <input
+              aria-label="전체 기본 글자색"
+              onInput={(event) =>
+                setContent((current) => ({
+                  ...current,
+                  visuals: {
+                    ...current.visuals,
+                    textColor: event.currentTarget.value,
+                  },
+                }))
+              }
+              type="color"
+              value={content.visuals.textColor}
+            />
+          </label>
+          <label>
+            보조
+            <input
+              aria-label="전체 보조 글자색"
+              onInput={(event) =>
+                setContent((current) => ({
+                  ...current,
+                  visuals: {
+                    ...current.visuals,
+                    mutedTextColor: event.currentTarget.value,
+                  },
+                }))
+              }
+              type="color"
+              value={content.visuals.mutedTextColor}
+            />
+          </label>
+        </div>
+        <div className="inline-admin-bar-actions">
+          <Link className="admin-button" href="/" rel="noreferrer" target="_blank">
+            공개 화면
+          </Link>
+          <button className="admin-button" formAction={logoutAction} type="submit">
+            로그아웃
+          </button>
+          <SubmitButton>저장</SubmitButton>
+        </div>
+        <p className="inline-admin-save-status" data-status={state.status} role="status">
+          {state.message ?? "화면에서 직접 수정한 뒤 저장하세요."}
+        </p>
+      </header>
 
       <div className="visual-editor-workspace">
         <div
@@ -1386,9 +1589,22 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
             content={previewContent}
             editor={{
               onChangeIntroductionTextBlock: updateIntroductionTextBlock,
+              onChangeRecentTextColors: changeRecentTextColors,
+              onChangeCareerDates: changeCareerDates,
+              onChangeContactStructure: changeContactStructure,
+              onChangeGalleryImageAlt: changeGalleryImageAlt,
+              onChangeProjectLink: changeProjectLink,
+              onChangeSectionVisual: updateSectionVisual,
+              onRemoveGalleryImage: removeGalleryImage,
+              onRemoveSectionBackground: removeSectionImage,
               onSelectIntroductionTextBlock: selectIntroductionTextBlock,
               onSelectSection: selectSection,
               onTextCommit: commitInlineText,
+              onUploadGalleryImages: uploadGalleryImages,
+              onUploadSectionBackground: (sectionId, file) =>
+                void uploadSectionImage(sectionId, file),
+              onAddItem: addInlineItem,
+              onDeleteItem: deleteInlineItem,
               selectedIntroductionTextBlockId,
               selectedSection,
             }}
@@ -1396,66 +1612,7 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
           />
         </div>
 
-        <aside
-          aria-hidden={!isInspectorOpen}
-          aria-labelledby="visual-editor-inspector-title"
-          aria-modal={
-            isMobileViewport && isInspectorOpen ? true : undefined
-          }
-          className="visual-editor-inspector"
-          data-open={isInspectorOpen ? "true" : "false"}
-          data-viewport-ready={isViewportReady ? "true" : "false"}
-          id="visual-editor-inspector"
-          inert={!isInspectorOpen}
-          role={isMobileViewport ? "dialog" : "complementary"}
-        >
-          <header className="visual-editor-inspector-header">
-            <div>
-              <span className="admin-kicker">PORTFOLIO CMS</span>
-              <h2 id="visual-editor-inspector-title">편집 메뉴</h2>
-            </div>
-            <div className="visual-editor-inspector-actions">
-              <Link
-                className="admin-button"
-                href="/"
-                rel="noreferrer"
-                target="_blank"
-              >
-                공개 화면
-              </Link>
-              <button
-                className="admin-button"
-                formAction={logoutAction}
-                type="submit"
-              >
-                로그아웃
-              </button>
-              <button
-                aria-label="편집 메뉴 닫기"
-                className="admin-button visual-editor-close"
-                onClick={closeInspector}
-                type="button"
-              >
-                닫기
-              </button>
-            </div>
-          </header>
-
-          <nav className="visual-section-tabs" aria-label="편집할 섹션">
-            {PORTFOLIO_SECTIONS.map((section) => (
-              <button
-                aria-pressed={selectedSection === section.id}
-                className="admin-button"
-                key={section.id}
-                onClick={() => navigateToSection(section.id)}
-                type="button"
-              >
-                {section.number} {section.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="visual-editor-inspector-scroll">
+        <div className="legacy-admin-fields" hidden>
           <section className="admin-edit-section admin-theme-section">
             <div className="admin-section-heading">
               <div>
@@ -1581,7 +1738,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
         <div className="admin-item-list">
           {content.skills.map((skill, index) => (
-            <fieldset className="admin-item" key={skill.id}>
+            <fieldset
+              className="admin-item"
+              data-admin-target-id={skill.id}
+              key={skill.id}
+            >
               <legend>기술 {index + 1}</legend>
               <div className="admin-field-grid">
                 <Field
@@ -1669,7 +1830,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         />
         <div className="admin-item-list">
           {content.careers.map((career, index) => (
-            <fieldset className="admin-item" key={career.id}>
+            <fieldset
+              className="admin-item"
+              data-admin-target-id={career.id}
+              key={career.id}
+            >
               <legend>경력 {index + 1}</legend>
               <div className="admin-field-grid">
                 <Field
@@ -1786,7 +1951,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
         <div className="admin-item-list">
           {content.careerWorks.map((work, index) => (
-            <fieldset className="admin-item" key={work.id}>
+            <fieldset
+              className="admin-item"
+              data-admin-target-id={work.id}
+              key={work.id}
+            >
               <legend>작업 {index + 1}</legend>
               <div className="admin-field-grid">
                 <label className="admin-field">
@@ -2000,7 +2169,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         />
         <div className="admin-item-list">
           {content.sideProjects.map((project, index) => (
-            <fieldset className="admin-item" key={project.id}>
+            <fieldset
+              className="admin-item"
+              data-admin-target-id={project.id}
+              key={project.id}
+            >
               <legend>프로젝트 {index + 1}</legend>
               <div className="admin-field-grid">
                 <Field
@@ -2232,7 +2405,11 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         />
         <div className="admin-item-list">
           {content.contacts.map((contact, index) => (
-            <fieldset className="admin-item" key={contact.id}>
+            <fieldset
+              className="admin-item"
+              data-admin-target-id={contact.id}
+              key={contact.id}
+            >
               <legend>연락처 {index + 1}</legend>
               <div className="admin-field-grid">
                 <label className="admin-field">
@@ -2368,22 +2545,6 @@ export function PortfolioEditor({ initialContent }: PortfolioEditorProps) {
         </div>
           </section>
           </div>
-
-          <div className="admin-save-bar">
-            {state.message ? (
-              <p
-                className="admin-form-message"
-                data-status={state.status}
-                role="status"
-              >
-                {state.message}
-              </p>
-            ) : (
-              <p>저장하면 공개 포트폴리오에 즉시 반영됩니다.</p>
-            )}
-            <SubmitButton>변경사항 저장</SubmitButton>
-          </div>
-        </aside>
       </div>
     </form>
   );

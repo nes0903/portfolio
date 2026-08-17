@@ -4,16 +4,18 @@ import { useEffect, useRef, type RefObject } from "react";
 
 import {
   PORTFOLIO_SECTIONS,
-  type PortfolioSectionId,
+  type PortfolioScrollSectionId,
 } from "@/components/layout/navigation";
 
 interface NavigationTrackerProps {
   readonly containerRef: RefObject<HTMLDivElement | null>;
-  readonly onActiveSectionChange?: (sectionId: PortfolioSectionId) => void;
+  readonly onActiveSectionChange?: (
+    sectionId: PortfolioScrollSectionId,
+  ) => void;
   readonly useContainerScroll?: boolean;
 }
 
-const sectionIds = new Set<PortfolioSectionId>(
+const sectionIds = new Set<PortfolioScrollSectionId>(
   PORTFOLIO_SECTIONS.map((section) => section.id),
 );
 const MOBILE_NAVIGATION_HIDE_DELAY = 1_200;
@@ -21,8 +23,10 @@ const MOBILE_NAVIGATION_HIDE_DELAY = 1_200;
 /**
  * 문자열이 승인된 portfolio section id인지 좁힌다.
  */
-function isPortfolioSectionId(value: string): value is PortfolioSectionId {
-  return sectionIds.has(value as PortfolioSectionId);
+function isPortfolioScrollSectionId(
+  value: string,
+): value is PortfolioScrollSectionId {
+  return sectionIds.has(value as PortfolioScrollSectionId);
 }
 
 /**
@@ -50,7 +54,7 @@ export function NavigationTracker({
     const sectionsRoot = container.querySelector<HTMLElement>(
       "[data-scroll-sections]",
     );
-    const sectionElements = new Map<PortfolioSectionId, HTMLElement>();
+    const sectionElements = new Map<PortfolioScrollSectionId, HTMLElement>();
 
     for (const section of PORTFOLIO_SECTIONS) {
       const element = container.querySelector<HTMLElement>(
@@ -67,8 +71,8 @@ export function NavigationTracker({
     const scrollRoot = useContainerScroll ? resolvedContainer : null;
     const scrollTarget: Window | HTMLElement = scrollRoot ?? window;
     const managesHistory = !useContainerScroll;
-    const intersectingSections = new Set<PortfolioSectionId>();
-    let activeSection: PortfolioSectionId | undefined;
+    const intersectingSections = new Set<PortfolioScrollSectionId>();
+    let activeSection: PortfolioScrollSectionId | undefined;
     let hideNavigationTimer: number | undefined;
     let pendingFocusFrame: number | undefined;
     let pendingInitialFrame: number | undefined;
@@ -77,7 +81,7 @@ export function NavigationTracker({
     let suppressObserver = false;
 
     function setCurrentSection(
-      sectionId: PortfolioSectionId,
+      sectionId: PortfolioScrollSectionId,
       options: { readonly syncHash: boolean },
     ): void {
       if (activeSection !== sectionId) {
@@ -116,10 +120,10 @@ export function NavigationTracker({
     }
 
     function getNearestSection(
-      candidates: Iterable<PortfolioSectionId>,
-    ): PortfolioSectionId | undefined {
+      candidates: Iterable<PortfolioScrollSectionId>,
+    ): PortfolioScrollSectionId | undefined {
       const viewportCenter = getViewportCenter();
-      let nearestSection: PortfolioSectionId | undefined;
+      let nearestSection: PortfolioScrollSectionId | undefined;
       let nearestDistance = Number.POSITIVE_INFINITY;
 
       for (const sectionId of candidates) {
@@ -166,7 +170,7 @@ export function NavigationTracker({
       }
     }
 
-    function scheduleSectionFocus(sectionId: PortfolioSectionId): void {
+    function scheduleSectionFocus(sectionId: PortfolioScrollSectionId): void {
       if (pendingFocusFrame !== undefined) {
         window.cancelAnimationFrame(pendingFocusFrame);
       }
@@ -185,7 +189,7 @@ export function NavigationTracker({
     }
 
     function navigateToSection(
-      sectionId: PortfolioSectionId,
+      sectionId: PortfolioScrollSectionId,
       historyMode: "none" | "push",
       focusSection = true,
     ): void {
@@ -221,7 +225,7 @@ export function NavigationTracker({
 
       const sectionId = link.hash.slice(1);
 
-      if (!isPortfolioSectionId(sectionId)) return;
+      if (!isPortfolioScrollSectionId(sectionId)) return;
 
       event.preventDefault();
       navigateToSection(sectionId, "push");
@@ -230,7 +234,7 @@ export function NavigationTracker({
     function handleHistoryNavigation(): void {
       const sectionId = window.location.hash.slice(1);
 
-      if (isPortfolioSectionId(sectionId)) {
+      if (isPortfolioScrollSectionId(sectionId)) {
         navigateToSection(sectionId, "none");
       }
     }
@@ -294,13 +298,13 @@ export function NavigationTracker({
     resolvedNavigation.dataset.scrollVisible = "false";
 
     const initialHash = managesHistory ? window.location.hash.slice(1) : "";
-    const initialSection = isPortfolioSectionId(initialHash)
+    const initialSection = isPortfolioScrollSectionId(initialHash)
       ? initialHash
       : "introduce";
 
     setCurrentSection(initialSection, { syncHash: false });
 
-    if (isPortfolioSectionId(initialHash)) {
+    if (isPortfolioScrollSectionId(initialHash)) {
       suppressObserver = true;
       sectionElements.get(initialHash)?.scrollIntoView({
         behavior: "auto",
@@ -325,7 +329,7 @@ export function NavigationTracker({
           for (const entry of entries) {
             const sectionId = (entry.target as HTMLElement).dataset.section;
 
-            if (!sectionId || !isPortfolioSectionId(sectionId)) continue;
+            if (!sectionId || !isPortfolioScrollSectionId(sectionId)) continue;
 
             if (entry.isIntersecting) {
               intersectingSections.add(sectionId);

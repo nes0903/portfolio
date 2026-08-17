@@ -103,7 +103,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expectSelectorDeclaration("html", /overflow-x\s*:\s*clip/);
   });
 
-  it("carousel 대신 네 section을 자연 높이의 세로 흐름으로 배치한다", () => {
+  it("carousel 대신 세 section을 자연 높이의 세로 흐름으로 배치한다", () => {
     expectSelectorDeclaration(".portfolio-sections", /display\s*:\s*grid/);
     expectSelectorDeclaration(".portfolio-sections", /gap\s*:\s*0/);
     expectSelectorDeclaration(".section", /position\s*:\s*relative/);
@@ -114,7 +114,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).not.toContain("data-carousel-offset");
   });
 
-  it("외곽 card 없이 별 배경 위에 네 section의 원형 색조만 연결한다", () => {
+  it("외곽 card와 우측 상단 radial 광원 없이 별 배경을 연결한다", () => {
     const portfolioSectionsRule = cssRules.find(
       (rule) => rule.selector === ".portfolio-sections",
     );
@@ -122,8 +122,10 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(portfolioSectionsRule?.body).not.toMatch(
       /(?:background|border|border-radius|box-shadow|overflow)\s*:/,
     );
-    expectSelectorDeclaration(".section", /radial-gradient\s*\(/);
-    expectSelectorDeclaration(".section", /transparent/);
+    const sectionRule = cssRules.find((rule) => rule.selector === ".section");
+    expect(sectionRule).toBeDefined();
+    expect(sectionRule?.body).not.toMatch(/radial-gradient\s*\(/);
+    expectSelectorDeclaration(".section", /background\s*:\s*transparent/);
     expectSelectorDeclaration(".section", /border\s*:\s*0/);
     expectSelectorDeclaration(".section", /border-radius\s*:\s*0/);
     expectSelectorDeclaration(".section", /box-shadow\s*:\s*none/);
@@ -152,7 +154,7 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
   it("경력 TECH 값의 시작점과 첫 줄을 다른 evidence 행에 맞춘다", () => {
     expectSelectorDeclaration(
       ".evidence .career-evidence-tech .chips",
-      /padding-left\s*:\s*1\.2rem/,
+      /padding-left\s*:\s*0/,
     );
     expectSelectorDeclaration(
       ".evidence .career-evidence-tech .chip",
@@ -163,23 +165,112 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       /align-items\s*:\s*flex-start/,
     );
     expectSelectorDeclaration(
-      ".evidence .career-evidence-tech .chips",
-      /padding-left\s*:\s*0/,
+      ".career-evidence-list",
+      /padding-inline-start\s*:\s*1\.2rem/,
+    );
+    expectSelectorDeclaration(".career-evidence-list", /list-style\s*:\s*none/);
+    expectSelectorDeclaration(
+      '.career-evidence-list li[data-bullet="true"]',
+      /list-style-type\s*:\s*"·  "/,
+    );
+    expectSelectorDeclaration(
+      '.career-evidence-list li[data-bullet="true"]::marker',
+      /color\s*:\s*currentColor/,
+    );
+    expect(cssSource).not.toContain(
+      '.career-evidence-list li[data-bullet="true"]::before',
+    );
+  });
+
+  it("project 기술·설명·상세 문장이 같은 content offset을 사용한다", () => {
+    expectSelectorDeclaration(
+      ".project",
+      /--project-content-offset\s*:\s*92px/,
+    );
+    expectSelectorDeclaration(
+      ".project-tech",
+      /padding\s*:[^;]*var\(--project-content-offset\)/,
+    );
+    expectSelectorDeclaration(
+      ".project-body",
+      /padding\s*:[^;]*var\(--project-content-offset\)/,
+    );
+    expectSelectorDeclaration(
+      ".project-highlights",
+      /padding-inline-start\s*:\s*1\.2rem/,
+    );
+    expectSelectorDeclaration(
+      '.project-highlights li[data-bullet="true"]',
+      /list-style-type\s*:\s*"·  "/,
+    );
+    expectSelectorDeclaration(
+      '.project-highlights li[data-bullet="true"]::marker',
+      /color\s*:\s*var\(--signal\)/,
+    );
+    expect(cssSource).not.toContain(".project-highlights li::before");
+  });
+
+  it("관리자 project 삭제 버튼을 토글 바깥 우측 영역에 배치한다", () => {
+    expectSelectorDeclaration(
+      '.project-shell[data-editor="true"]',
+      /padding-right\s*:\s*56px/,
+    );
+    expectSelectorDeclaration(".project-inline-delete", /right\s*:\s*0/);
+    expectSelectorDeclaration(
+      ".project-inline-delete",
+      /min-height\s*:\s*44px/,
+    );
+    expectSelectorDeclaration(
+      '.project-shell[data-editor="true"] .project-header-actions',
+      /right\s*:\s*98px/,
+    );
+  });
+
+  it("연락처를 section 대신 고정 side rail에 배치한다", () => {
+    expectSelectorDeclaration(
+      ".side-contact-rail",
+      /overflow-y\s*:\s*auto/,
+    );
+    expectSelectorDeclaration(".side-contact-value", /overflow-wrap\s*:\s*anywhere/);
+    expectSelectorDeclaration(".side-contact-list", /display\s*:\s*grid/);
+    expectSelectorDeclaration(".side-contact-rail", /margin-top\s*:\s*auto/);
+    expectSelectorDeclaration(".side-rail", /bottom\s*:\s*20px/);
+    expectSelectorDeclaration(
+      '.portfolio-experience[data-editor-preview="true"] .side-rail',
+      /bottom\s*:\s*124px/,
+    );
+    expect(cssSource).not.toContain('.section[data-section="contact"]');
+    expect(cssSource).not.toContain(".channels");
+  });
+
+  it("경력 evidence는 회색 panel 없이 배경 위에 직접 표시한다", () => {
+    expectSelectorDeclaration(".evidence", /background\s*:\s*transparent/);
+    expectSelectorDeclaration(
+      ".evidence section",
+      /background\s*:\s*transparent/,
+    );
+    expectSelectorDeclaration(
+      ".evidence section + section",
+      /border-top\s*:\s*1px/,
     );
   });
 
   it("desktop에서는 side brand 아래 같은 중심축에 index를 표시한다", () => {
     expectSelectorDeclaration(
-      ".section-navigation",
+      ".side-rail",
       /position\s*:\s*fixed/,
     );
     expectSelectorDeclaration(
-      ".section-navigation",
+      ".side-rail",
       /top\s*:\s*calc\(var\(--site-header-height\)/,
     );
     expectSelectorDeclaration(
-      ".section-navigation",
+      ".side-rail",
       /left\s*:\s*var\(--side-rail-left\)/,
+    );
+    expectSelectorDeclaration(
+      ".side-rail",
+      /width\s*:\s*var\(--side-rail-width\)/,
     );
     expectSelectorDeclaration(
       ".side-brand",
@@ -208,9 +299,18 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
     expect(cssSource).toMatch(
       /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-brand\s*\{[\s\S]*?position\s*:\s*absolute[\s\S]*?top\s*:\s*0[\s\S]*?height\s*:\s*var\(--site-header-height\)/,
     );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-rail\s*\{[\s\S]*?position\s*:\s*fixed[\s\S]*?bottom\s*:\s*calc\(8px \+ env\(safe-area-inset-bottom\)\)/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-rail\s*\{[\s\S]*?margin-top\s*:\s*0/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*820px\s*\)[\s\S]*?\.side-contact-list\s*\{[\s\S]*?display\s*:\s*flex[\s\S]*?overflow-x\s*:\s*auto/,
+    );
   });
 
-  it("관리자 화면은 공개 canvas와 window scroll을 유지하고 편집기만 겹친다", () => {
+  it("관리자 화면은 공개 canvas 위에 상단 bar와 직접 편집 control만 겹친다", () => {
     expectSelectorDeclaration(
       ".admin-page",
       /width\s*:\s*100%/,
@@ -220,23 +320,57 @@ describe("Portfolio continuous scroll shell CSS contract", () => {
       /background\s*:\s*#000/,
     );
     expectSelectorDeclaration(
-      ".visual-editor-inspector",
+      ".inline-admin-bar",
       /position\s*:\s*fixed/,
     );
-    expectSelectorDeclaration(
-      ".visual-editor-inspector",
-      /width\s*:\s*min\(420px/,
+    expectSelectorDeclaration(".inline-admin-bar", /left\s*:\s*16px/);
+    expectSelectorDeclaration(".inline-admin-bar", /bottom\s*:\s*16px/);
+    expectSelectorDeclaration(".inline-admin-bar", /width\s*:\s*fit-content/);
+    const inlineAdminBarRule = cssRules.find(
+      (rule) => rule.selector === ".inline-admin-bar",
     );
+    expect(inlineAdminBarRule?.body).not.toMatch(/(?:top|transform)\s*:/);
     expectSelectorDeclaration(
-      ".visual-editor-inspector-scroll",
-      /overflow-y\s*:\s*auto/,
-    );
-    expectSelectorDeclaration(
-      '.visual-editor-inspector[data-open="true"]',
-      /transform\s*:\s*translateX\(0\)/,
+      ".admin-page .visual-editor-canvas .portfolio-experience",
+      /padding-bottom\s*:\s*calc\(108px \+ env\(safe-area-inset-bottom\)\)/,
     );
     expect(cssSource).toMatch(
-      /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.visual-editor-inspector\s*\{[\s\S]*?left\s*:\s*0[\s\S]*?width\s*:\s*auto/,
+      /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.admin-page \.visual-editor-canvas \.portfolio-experience\s*\{[\s\S]*?padding-bottom\s*:\s*calc\(260px \+ env\(safe-area-inset-bottom\)\)/,
+    );
+    expect(cssSource).toMatch(
+      /@media\s*\(\s*max-width\s*:\s*720px\s*\)[\s\S]*?\.inline-admin-bar\s*\{[\s\S]*?left\s*:\s*8px[\s\S]*?bottom\s*:\s*calc\(8px \+ env\(safe-area-inset-bottom\)\)/,
+    );
+    expectSelectorDeclaration(
+      ".inline-section-design-strip",
+      /position\s*:\s*absolute/,
+    );
+    expectSelectorDeclaration(
+      ".inline-image-dropzone",
+      /border\s*:\s*1px dashed/,
+    );
+    expectSelectorDeclaration(
+      ".inline-image-dropzone",
+      /min-height\s*:\s*112px/,
+    );
+    expectSelectorDeclaration(
+      ".inline-gallery-image-delete",
+      /top\s*:\s*12px/,
+    );
+    expectSelectorDeclaration(
+      ".inline-gallery-image-delete",
+      /right\s*:\s*12px/,
+    );
+    expectSelectorDeclaration(
+      ".inline-gallery-image-delete",
+      /width\s*:\s*44px/,
+    );
+    expectSelectorDeclaration(
+      ".inline-gallery-image-delete",
+      /height\s*:\s*44px/,
+    );
+    expectSelectorDeclaration(
+      ".inline-image-caption-input",
+      /background\s*:\s*transparent/,
     );
     expect(cssSource).not.toContain(".visual-preview-panel");
     expect(cssSource).not.toContain("height: min(780px");
